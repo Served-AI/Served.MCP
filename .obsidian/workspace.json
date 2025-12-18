@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "tools/mcp/README.md",
+                "file": "tools/mcp/projects.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "README"
+              "title": "projects"
             }
           }
         ]
@@ -94,7 +94,7 @@
             "state": {
               "type": "backlink",
               "state": {
-                "file": "tools/mcp/README.md",
+                "file": "tools/mcp/projects.md",
                 "collapseAll": false,
                 "extraContext": false,
                 "sortOrder": "alphabetical",
@@ -104,7 +104,7 @@
                 "unlinkedCollapsed": true
               },
               "icon": "links-coming-in",
-              "title": "Backlinks for README"
+              "title": "Backlinks for projects"
             }
           },
           {
@@ -113,12 +113,12 @@
             "state": {
               "type": "outgoing-link",
               "state": {
-                "file": "tools/mcp/README.md",
+                "file": "tools/mcp/projects.md",
                 "linksCollapsed": false,
                 "unlinkedCollapsed": true
               },
               "icon": "links-going-out",
-              "title": "Outgoing links from README"
+              "title": "Outgoing links from projects"
             }
           },
           {
@@ -156,13 +156,13 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "tools/mcp/README.md",
+                "file": "tools/mcp/projects.md",
                 "followCursor": false,
                 "showSearch": false,
                 "searchQuery": ""
               },
               "icon": "lucide-list",
-              "title": "Outline of README"
+              "title": "Outline of projects"
             }
           }
         ]
@@ -185,9 +185,19 @@
   },
   "active": "f277d6a66fb42f57",
   "lastOpenFiles": [
-    "skills/mcp.md",
-    "README.md",
+    "tools/mcp/customfields.md",
     "tools/mcp/README.md",
+    "README.md",
+    "tools/mcp/tasks.md",
+    "tools/mcp/projects.md",
+    "tools/mcp/intelligence.md",
+    "tools/mcp/employees.md",
+    "tools/mcp/timetracking.md",
+    "tools/mcp/agreements.md",
+    "tools/mcp/customers.md",
+    "tools/mcp/context.md",
+    "tools/api/timeregistration.md",
+    "skills/mcp.md",
     "tools/mcp"
   ]
 }
