@@ -23,7 +23,21 @@ Kald GetUserContext FØRST for at:
 - Få det korrekte tenantId
 ```
 
-### 2. Brug tenantId i alle efterfølgende kald
+### 2. Hent workspace context med GetTenantContext
+
+```
+Kald GetTenantContext(tenantId) for at forstå workspace'et:
+- Kategorier (project types, statuses, task states, priorities) med navne
+- Custom field definitioner (hvilke felter er tilgængelige?)
+- AI modeller (hvilke AI services kan bruges?)
+- Statistik (antal projekter, opgaver, kunder, team members)
+- Tenant info (navn, beskrivelse, logo)
+```
+
+**Hvorfor?** Dette giver dig alt du skal vide om hvad der er muligt i workspace'et,
+så du undgår at bruge forkerte kategori-IDs eller manglende custom fields.
+
+### 3. Brug tenantId i alle efterfølgende kald
 
 Alle MCP tools kræver `tenantId` parameter. Brug værdien fra GetUserContext.
 
@@ -46,18 +60,20 @@ Brug disse IDs i efterfølgende operationer.
 
 ```
 1. GetUserContext → Få tenantId
-2. CreateProject(tenantId, "Nyt Projekt", ...) → Få projectId
-3. CreateTask(tenantId, projectId, "Opgave 1", ...)
-4. CreateTask(tenantId, projectId, "Opgave 2", ...)
+2. GetTenantContext(tenantId) → Forstå workspace (kategorier, custom fields, etc.)
+3. CreateProject(tenantId, "Nyt Projekt", ...) → Få projectId
+4. CreateTask(tenantId, projectId, "Opgave 1", ...)
+5. CreateTask(tenantId, projectId, "Opgave 2", ...)
 ```
 
 ### Eksempel 2: Analyser projektstatus
 
 ```
 1. GetUserContext → Få tenantId
-2. GetProjects(tenantId) → Find relevante projekter
-3. AnalyzeProjectHealth(tenantId, projectId) → Få sundhedsrapport
-4. GetTasks(tenantId, projectId) → Se opgavestatus
+2. GetTenantContext(tenantId) → Forstå workspace kategorier
+3. GetProjects(tenantId) → Find relevante projekter
+4. AnalyzeProjectHealth(tenantId, projectId) → Få sundhedsrapport
+5. GetTasks(tenantId, projectId) → Se opgavestatus
 ```
 
 ### Eksempel 3: Hjælp med tidsregistrering
@@ -73,26 +89,29 @@ Brug disse IDs i efterfølgende operationer.
 
 ```
 1. GetUserContext → Få tenantId
-2. FindSimilarProjects(tenantId, "beskrivelse") → Lær fra historik
-3. SuggestTaskDecomposition(tenantId, "feature", "type") → Få opgaveforslag
-4. EstimateEffort(tenantId, "beskrivelse", "features") → Få estimat
-5. CreateProject(...) og CreateTasksBulk(...) → Opret alt
+2. GetTenantContext(tenantId) → Se tilgængelige kategorier og custom fields
+3. FindSimilarProjects(tenantId, "beskrivelse") → Lær fra historik
+4. SuggestTaskDecomposition(tenantId, "feature", "type") → Få opgaveforslag
+5. EstimateEffort(tenantId, "beskrivelse", "features") → Få estimat
+6. CreateProject(...) og CreateTasksBulk(...) → Opret alt med korrekte kategori IDs
 ```
 
 ---
 
 ## Best Practices
 
-### Altid verificer workspace
+### Altid verificer workspace og hent context
 
 ```
 ✅ Korrekt:
 1. GetUserContext
 2. "Du har adgang til workspace 'Acme Corp' (tenantId: 1). Skal jeg fortsætte med dette?"
-3. [Efter bekræftelse] GetProjects(1)
+3. [Efter bekræftelse] GetTenantContext(1)
+4. GetProjects(1)
 
 ❌ Forkert:
 1. GetProjects(1)  // Antager tenantId uden at verificere
+2. GetUserContext → GetProjects(1)  // Mangler tenant context
 ```
 
 ### Bulk operationer kræver bekræftelse
@@ -121,11 +140,26 @@ Brug disse IDs i efterfølgende operationer.
 
 ## Tool Reference
 
-### Data Tools (CRUD)
+### Context Tools (Start her!)
 
 | Tool | Handling | Parametre |
 |------|----------|-----------|
 | GetUserContext | Hent bruger og workspaces | - |
+| GetTenantContext | Hent workspace detaljer | tenantId |
+
+**GetTenantContext returnerer:**
+- Tenant info (navn, slug, logo, beskrivelse)
+- Statistik (antal projekter, opgaver, kunder, team members)
+- Kategorier med navne (project types, statuses, stages, task types, states, priorities)
+- Custom fields (sections og definitioner med datatyper)
+- AI modeller (tilgængelige AI services med capabilities)
+
+**Brug altid GetTenantContext efter GetUserContext** for at forstå hvad der er muligt i workspace'et.
+
+### Data Tools (CRUD)
+
+| Tool | Handling | Parametre |
+|------|----------|-----------|
 | GetProjects | List projekter | tenantId |
 | CreateProject | Opret projekt | tenantId, name, ... |
 | UpdateProject | Opdater projekt | tenantId, projectId, ... |
