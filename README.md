@@ -22,6 +22,7 @@ MCP Server: `https://app.served.dk/mcp`
 | Tool | Beskrivelse |
 |------|-------------|
 | `GetUserContext` | Hent bruger profil og workspaces. **Kald denne først.** |
+| `GetTenantContext` | Hent detaljeret tenant info (indstillinger, kategorier). |
 
 → Se [tools/mcp/context.md](tools/mcp/context.md) for detaljer
 
@@ -35,6 +36,7 @@ MCP Server: `https://app.served.dk/mcp`
 | `UpdateProject` | Opdater eksisterende projekt (inkl. flyt via parentId) |
 | `DeleteProject` | Slet projekt |
 | `UpdateProjectsBulk` | Bulk opdater projekter (kræver bekræftelse) |
+| `ExecuteUpdateProjectsBulk` | Udfør bulk opdatering af projekter |
 
 → Se [tools/mcp/projects.md](tools/mcp/projects.md) for parametre
 
@@ -59,8 +61,10 @@ MCP Server: `https://app.served.dk/mcp`
 | Tool | Beskrivelse |
 |------|-------------|
 | `GetCustomers` | List kunder |
+| `GetCustomerDetails` | Hent detaljeret kundeinformation |
 | `CreateCustomer` | Opret kunde |
 | `UpdateCustomer` | Opdater kunde |
+| `DeleteCustomer` | Slet kunde |
 
 → Se [tools/mcp/customers.md](tools/mcp/customers.md) for parametre
 
@@ -69,7 +73,10 @@ MCP Server: `https://app.served.dk/mcp`
 | Tool | Beskrivelse |
 |------|-------------|
 | `GetAgreements` | List aftaler/bookinger |
+| `GetAgreementDetails` | Hent detaljeret aftaleinformation |
 | `CreateAgreement` | Opret aftale |
+| `UpdateAgreement` | Opdater aftale |
+| `DeleteAgreement` | Slet aftale |
 
 → Se [tools/mcp/agreements.md](tools/mcp/agreements.md) for parametre
 

@@ -128,6 +128,93 @@ Aftale 'Statusmøde' oprettet succesfuldt med ID: 405
 
 ---
 
+## GetAgreementDetails
+
+Hent detaljer om en aftale.
+
+### Parametre
+
+| Parameter | Type | Påkrævet | Beskrivelse |
+|-----------|------|----------|-------------|
+| agreementId | int | Ja | Aftale ID |
+
+### Request
+
+```json
+{
+  "tool": "GetAgreementDetails",
+  "agreementId": 405
+}
+```
+
+### Response
+
+```
+@agreement-details[405] { ... }
+```
+
+---
+
+## UpdateAgreement
+
+Opdater en aftale.
+
+### Parametre
+
+| Parameter | Type | Påkrævet | Beskrivelse |
+|-----------|------|----------|-------------|
+| agreementId | int | Ja | Aftale ID |
+| title | string | Nej | Ny titel |
+| startDate | string | Nej | Ny start dato |
+| endDate | string | Nej | Ny slut dato |
+| customerId | int | Nej | Ny kunde ID |
+| task | string | Nej | Ny opgave beskrivelse |
+
+### Request
+
+```json
+{
+  "tool": "UpdateAgreement",
+  "agreementId": 405,
+  "title": "Opdateret Møde"
+}
+```
+
+### Response
+
+```
+Aftale 405 opdateret succesfuldt.
+```
+
+---
+
+## DeleteAgreement
+
+Slet en aftale.
+
+### Parametre
+
+| Parameter | Type | Påkrævet | Beskrivelse |
+|-----------|------|----------|-------------|
+| agreementId | int | Ja | Aftale ID |
+
+### Request
+
+```json
+{
+  "tool": "DeleteAgreement",
+  "agreementId": 405
+}
+```
+
+### Response
+
+```
+Aftale med ID 405 slettet succesfuldt.
+```
+
+---
+
 ## Fejlhåndtering
 
 ### Ugyldigt datoformat

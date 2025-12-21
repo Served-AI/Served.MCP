@@ -143,6 +143,66 @@ Kunde 'Acme Corporation' opdateret succesfuldt.
 
 ---
 
+## GetCustomerDetails
+
+Hent detaljeret information om en kunde.
+
+### Parametre
+
+| Parameter | Type | Påkrævet | Beskrivelse |
+|-----------|------|----------|-------------|
+| customerId | int | Ja | Kunde ID |
+
+### Request
+
+```json
+{
+  "tool": "GetCustomerDetails",
+  "customerId": 301
+}
+```
+
+### Response
+
+```
+@customer-details[301] {
+    name: "Acme Corporation"
+    email: "ny-email@acme.dk"
+    phone: "+4599887766"
+    type: "Erhverv"
+    ...
+}
+```
+
+---
+
+## DeleteCustomer
+
+Slet en kunde.
+
+### Parametre
+
+| Parameter | Type | Påkrævet | Beskrivelse |
+|-----------|------|----------|-------------|
+| customerId | int | Ja | Kunde ID |
+
+### Request
+
+```json
+{
+  "tool": "DeleteCustomer",
+  "customerId": 301
+}
+```
+
+### Response
+
+```
+Kunde med ID 301 slettet succesfuldt.
+```
+
+---
+
 ## Fejlhåndtering
 
 ### Kunde ikke fundet

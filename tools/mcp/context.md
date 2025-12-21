@@ -82,6 +82,56 @@ Ingen parametre.
 | primaryWorkspace | object | Primært workspace |
 | hint | string | Hjælpetekst |
 
+---
+
+## GetTenantContext
+
+Hent detaljeret kontekst om et specifikt workspace, inkl. indstillinger, kategorier og felter.
+
+### Parametre
+
+| Parameter | Type | Påkrævet | Beskrivelse |
+|-----------|------|----------|-------------|
+| tenantId | int | Ja | Workspace ID |
+
+### Request
+
+```json
+{
+  "tool": "GetTenantContext",
+  "tenantId": 1
+}
+```
+
+### Response
+
+```json
+{
+  "success": true,
+  "tenant": {
+    "id": 1,
+    "name": "Acme Corporation",
+    "slug": "acme"
+  },
+  "statistics": {
+    "employeesCount": 5,
+    "projectsCount": 10,
+    "tasksCount": 50,
+    "customersCount": 20
+  },
+  "categories": {
+    "projectTypes": [{"id": 1, "name": "Web"}],
+    "taskStates": [{"id": 1, "name": "New"}, {"id": 2, "name": "In Progress"}]
+  },
+  "customFields": {
+    "definitions": []
+  },
+  "aiModels": []
+}
+```
+
+---
+
 ### Fejl
 
 ```json

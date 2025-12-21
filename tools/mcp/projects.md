@@ -13,8 +13,6 @@ Hent alle projekter for et workspace.
 | Parameter | Type | Påkrævet | Beskrivelse |
 |-----------|------|----------|-------------|
 | tenantId | int | Ja | Workspace ID fra GetUserContext |
-| requiresSelection | bool | Nej | Returner valgmuligheder til bruger (default: false) |
-| selectionQuestion | string | Nej | Spørgsmål at stille ved selection |
 
 ### Request - Standard
 
@@ -22,17 +20,6 @@ Hent alle projekter for et workspace.
 {
   "tool": "GetProjects",
   "tenantId": 1
-}
-```
-
-### Request - Med selection
-
-```json
-{
-  "tool": "GetProjects",
-  "tenantId": 1,
-  "requiresSelection": true,
-  "selectionQuestion": "Hvilket projekt vil du arbejde med?"
 }
 ```
 
@@ -60,30 +47,7 @@ Her er dine 5 projekter:
 }
 ```
 
-### Response - Med selection
 
-```json
-{
-  "RequiresSelection": true,
-  "Question": "Hvilket projekt vil du arbejde med?",
-  "Options": [
-    {
-      "Label": "Website Redesign",
-      "Value": "101",
-      "ParentId": null,
-      "Description": "PRJ-2025-001 - I gang - 45% færdig",
-      "Icon": "ms-Icon--ProjectCollection"
-    },
-    {
-      "Label": "Mobile App",
-      "Value": "102",
-      "ParentId": 101,
-      "Description": "PRJ-2025-002 - I gang - 20% færdig",
-      "Icon": "ms-Icon--ProjectCollection"
-    }
-  ]
-}
-```
 
 ### @project Reference
 
@@ -283,6 +247,7 @@ Sletning af et projekt kan påvirke tilknyttede opgaver og underprojekter.
 
 ---
 
+
 ## UpdateProjectsBulk
 
 Opdater flere projekter på én gang. **Kræver brugerbekræftelse**.
@@ -339,41 +304,39 @@ Opdater flere projekter på én gang. **Kræver brugerbekræftelse**.
 
 ---
 
-## Fejlhåndtering
+## ExecuteUpdateProjectsBulk
 
-### Ikke autentificeret
+Udfør bulk opdatering af projekter efter bekræftelse.
+
+### Parametre
+
+| Parameter | Type | Påkrævet | Beskrivelse |
+|-----------|------|----------|-------------|
+| tenantId | int | Ja | Workspace ID |
+| updatesJson | string | Ja | Samme JSON som UpdateProjectsBulk |
+
+### Request
 
 ```json
 {
-  "success": false,
-  "error": "Not authenticated"
+  "tool": "ExecuteUpdateProjectsBulk",
+  "tenantId": 1,
+  "updatesJson": "[{\"projectId\": 101, \"name\": \"Updated\"}, {\"projectId\": 102, \"endDate\": \"2025-09-30\"}]"
 }
 ```
 
-### Ingen adgang til workspace
-
-```json
-{
-  "success": false,
-  "error": "No access to this workspace"
-}
-```
-
-### Projekt ikke fundet
+### Response
 
 ```
-Projekt med ID 999 blev ikke fundet.
-```
+Opdateret 2 ud af 2 projekter.
 
-### TenantId mangler
-
-```
-TenantId er 0! Dette skulle ikke ske. Check at context bliver sat korrekt i requesten.
+✓ 'Updated' (ID: 101)
+✓ 'Website Redesign' (ID: 102)
 ```
 
 ---
 
-## Workflow Eksempler
+### Workflow Eksempler
 
 ### Opret projekt med underprojekter
 
@@ -405,7 +368,7 @@ TenantId er 0! Dette skulle ikke ske. Check at context bliver sat korrekt i requ
 Bruger: "Giv mig detaljer om Website projektet"
 
 AI:
-1. GetProjects(tenantId: 1, requiresSelection: true)
+1. GetProjects(tenantId: 1)
 2. [Bruger vælger projekt 101]
 3. GetProjectDetails(tenantId: 1, projectId: 101)
 4. "Website Redesign:
@@ -414,3 +377,4 @@ AI:
    - Periode: 2025-01-01 til 2025-06-30
    - Projektleder: John Doe"
 ```
+

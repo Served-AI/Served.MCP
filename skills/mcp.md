@@ -161,19 +161,29 @@ Brug disse IDs i efterfølgende operationer.
 | Tool | Handling | Parametre |
 |------|----------|-----------|
 | GetProjects | List projekter | tenantId |
+| GetProjectDetails | Hent projektdetaljer | tenantId, projectId |
 | CreateProject | Opret projekt | tenantId, name, ... |
 | UpdateProject | Opdater projekt | tenantId, projectId, ... |
+| DeleteProject | Slet projekt | tenantId, projectId |
 | GetTasks | List opgaver | tenantId, projectId |
+| GetTaskDetails | Hent opgavedetaljer | tenantId, taskId |
 | CreateTask | Opret opgave | tenantId, projectId, name, ... |
 | UpdateTask | Opdater opgave | tenantId, taskId, ... |
+| DeleteTask | Slet opgave | tenantId, taskId |
 | CreateTasksBulk | Bulk opret (med bekræftelse) | tenantId, tasksJson |
 | ExecuteCreateTasksBulk | Udfør bulk | tenantId, tasksJson |
 | GetCustomers | List kunder | tenantId |
+| GetCustomerDetails | Hent kundedetaljer | tenantId, customerId |
 | CreateCustomer | Opret kunde | tenantId, firstName, ... |
 | UpdateCustomer | Opdater kunde | tenantId, customerId, ... |
+| DeleteCustomer | Slet kunde | tenantId, customerId |
 | GetAgreements | List aftaler | tenantId |
+| GetAgreementDetails | Hent aftaledetaljer | tenantId, agreementId |
 | CreateAgreement | Opret aftale | tenantId, title, startDate, endDate |
+| UpdateAgreement | Opdater aftale | tenantId, agreementId, ... |
+| DeleteAgreement | Slet aftale | tenantId, agreementId |
 | GetEmployees | List team | tenantId, activeOnly |
+
 
 ### AI Tools (Intelligence)
 
