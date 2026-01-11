@@ -119,6 +119,38 @@ MCP Server: `https://app.served.dk/mcp`
 
 → Se [tools/mcp/employees.md](tools/mcp/employees.md) for parametre
 
+### DevOps - Git Repositories
+
+| Tool | Beskrivelse |
+|------|-------------|
+| `GetDevOpsRepositories` | List forbundne Git repos (GitHub, GitLab, Azure DevOps) |
+| `GetDevOpsRepository` | Hent detaljer for et repository |
+| `ConnectRepository` | Forbind nyt Git repository med webhook setup |
+| `UpdateRepository` | Opdater repository indstillinger |
+| `DisconnectRepository` | Fjern repository forbindelse |
+
+→ Se [tools/mcp/devops.md](tools/mcp/devops.md) for parametre
+
+### DevOps - Pull Requests
+
+| Tool | Beskrivelse |
+|------|-------------|
+| `GetPullRequests` | Hent PRs for workspace eller repository |
+| `GetTaskPullRequests` | Hent PRs linket til en task |
+| `GetAgentSessionPullRequests` | Hent PRs oprettet af CLI agent session |
+| `LinkPullRequestToTask` | Link PR til Served task |
+
+→ Se [tools/mcp/devops.md](tools/mcp/devops.md) for parametre
+
+### DevOps - Pipeline/CI
+
+| Tool | Beskrivelse |
+|------|-------------|
+| `GetPipelineRuns` | Hent pipeline runs for PR eller repository |
+| `GetLatestPipelineRun` | Hent seneste CI status for PR |
+
+→ Se [tools/mcp/devops.md](tools/mcp/devops.md) for parametre
+
 ---
 
 ## REST API Tools Oversigt
@@ -138,46 +170,69 @@ Base URL: `https://app.served.dk`
 
 → Se [tools/api/customer.md](tools/api/customer.md) for detaljer
 
-### Project
+### Project (API V2)
 
 | Endpoint | Metode | Beskrivelse |
 |----------|--------|-------------|
-| `/api/project_management/project/GetKeys` | POST | Hent projekt IDs |
-| `/api/project_management/project/GetGrouping` | POST | Hent grupperet |
-| `/api/project_management/project/Detailed` | POST | Hent detaljeret |
-| `/api/project_management/project/Create` | POST | Opret projekt |
-| `/api/project_management/project/Update` | POST | Opdater projekt |
-| `/api/project_management/project/UpdateMultiple` | PATCH | Batch opdater |
-| `/api/project_management/project/Delete` | DELETE | Slet projekt |
+| `/api/projects` | GET | List projekter med filtrering |
+| `/api/projects/{id}` | GET | Hent projekt detaljer |
+| `/api/projects` | POST | Opret projekt |
+| `/api/projects/{id}` | PUT | Opdater projekt |
+| `/api/projects/{id}` | PATCH | Delvis opdatering |
+| `/api/projects/{id}` | DELETE | Slet projekt |
+| `/api/projects/by-customer/{customerId}` | GET | Projekter for kunde |
+| `/api/projects/grouping` | POST | Hent grupperet |
+| `/api/projects/can-delete` | POST | Check sletbarhed |
 
 → Se [tools/api/project.md](tools/api/project.md) for detaljer
 
-### Task
+### Task (API V2)
 
 | Endpoint | Metode | Beskrivelse |
 |----------|--------|-------------|
-| `/api/project_management/task/GetKeys` | POST | Hent task IDs |
-| `/api/project_management/task/GetGrouping` | POST | Hent grupperet |
-| `/api/project_management/task/Gantt` | POST | Hent Gantt data |
-| `/api/project_management/task/Detailed` | POST | Hent detaljeret |
-| `/api/project_management/task/Create` | POST | Opret task |
-| `/api/project_management/task/Update` | POST | Opdater task |
-| `/api/project_management/task/Patch` | POST | Hurtig opdatering |
-| `/api/project_management/task/Delete` | DELETE | Slet task |
+| `/api/tasks` | GET | List tasks med filtrering |
+| `/api/tasks/{id}` | GET | Hent task detaljer |
+| `/api/tasks` | POST | Opret task |
+| `/api/tasks/{id}` | PUT | Opdater task |
+| `/api/tasks/{id}` | PATCH | Delvis opdatering |
+| `/api/tasks/{id}` | DELETE | Slet task |
+| `/api/tasks/{id}/status` | PATCH | Opdater status |
+| `/api/tasks/by-project/{projectId}` | GET | Tasks for projekt |
+| `/api/tasks/grouping` | POST | Hent grupperet |
+| `/api/tasks/gantt` | POST | Hent Gantt data |
 
 → Se [tools/api/task.md](tools/api/task.md) for detaljer
 
-### Agreement
+### Agreement (API V2)
 
 | Endpoint | Metode | Beskrivelse |
 |----------|--------|-------------|
-| `/api/calendar/agreement/Get` | GET | Hent aftale |
-| `/api/calendar/agreement/GetKeys` | POST | Hent aftale IDs |
-| `/api/calendar/agreement/Create` | POST | Opret aftale |
-| `/api/calendar/agreement/Update` | POST | Opdater aftale |
-| `/api/calendar/agreement/Delete` | DELETE | Slet aftaler |
+| `/api/agreements` | GET | List aftaler med filtrering |
+| `/api/agreements/{id}` | GET | Hent aftale |
+| `/api/agreements` | POST | Opret aftale |
+| `/api/agreements/{id}` | PUT | Opdater aftale |
+| `/api/agreements/{id}` | DELETE | Slet aftale |
+| `/api/agreements/by-customer/{customerId}` | GET | Aftaler for kunde |
+| `/api/agreements/by-date-range` | GET | Aftaler i datointerval |
 
 → Se [tools/api/agreement.md](tools/api/agreement.md) for detaljer
+
+### Meeting (API V2)
+
+| Endpoint | Metode | Beskrivelse |
+|----------|--------|-------------|
+| `/api/meetings` | GET | List møder med filtrering |
+| `/api/meetings/{id}` | GET | Hent møde detaljer |
+| `/api/meetings` | POST | Opret møde |
+| `/api/meetings/{id}` | PUT | Opdater møde |
+| `/api/meetings/{id}` | DELETE | Slet møde |
+| `/api/meetings/by-claim/{claimId}` | GET | Møde via claim ID |
+| `/api/meetings/{id}/participants` | GET/POST | Deltagere |
+| `/api/meetings/{id}/recordings` | GET/POST | Optagelser |
+| `/api/meetings/{id}/notes` | GET/POST | Mødenoter |
+| `/api/meetings/{id}/action-items` | GET/POST | Handlingspunkter |
+
+→ Se [tools/api/meeting.md](tools/api/meeting.md) for detaljer
 
 ### Time Registration
 
@@ -237,4 +292,4 @@ Authorization: Bearer <JWT_TOKEN>
 ```
 
 **MCP:**
-OAuth med scopes: `projects`, `tasks`, `customers`, `calendar`, `timetracking`, `employees`, `intelligence`, `customfields`
+OAuth med scopes: `projects`, `tasks`, `customers`, `calendar`, `timetracking`, `employees`, `intelligence`, `customfields`, `devops`

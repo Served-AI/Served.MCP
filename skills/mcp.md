@@ -299,3 +299,19 @@ Brug disse IDs i efterfølgende operationer.
 3. **Udnyt AI tools**: De giver værdifuld indsigt baseret på historiske data
 4. **Respekter bekræftelser**: Bulk operationer skal bekræftes af brugeren
 5. **Brug @entity references**: De gør det nemt at referere til specifikke objekter
+
+---
+
+## Fremtidige MCP Tools
+
+### Automation Workflows (Planlagt)
+
+MCP tools til automation workflows er under udvikling. Disse tools vil give Claude mulighed for at:
+
+- Oprette, opdatere og slette workflows
+- Køre workflows med test-data
+- Inspicere execution resultater og fejl
+- Debugge node-by-node execution
+- Administrere triggers (webhooks, schedules, events)
+
+**Se:** `/docs/tasks/features/MCP_AUTOMATION_TOOLS.md` for fuld specifikation

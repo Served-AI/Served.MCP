@@ -13,6 +13,7 @@ Served er en enterprise platform med følgende hovedmoduler:
 | Calendar | Kalender, aftaler, bookings, kunder |
 | Finance | Fakturaer, billing, valuta |
 | Trading | Trading agents, porteføljer, strategier |
+| Companies / Sales | Virksomhedsdatabase, CVR lookup, Served Intelligence, auto-sync |
 | Automation | Workflows, triggers, webhooks |
 | Integration | GitHub, Microsoft, SaxoBank, Stripe |
 
@@ -25,21 +26,84 @@ Served er en enterprise platform med følgende hovedmoduler:
 
 ## Authentication
 
-### JWT Token
+Served bruger JWT-baseret autentificering med browser/session tracking.
+
+### Authentication Flow (KRITISK)
+
+**Flowet er**: Register → Login (med browser JWT) → Bootstrap → API calls
+
+#### Step 1: Register Browser (PÅKRÆVET)
+
+Registrer browser fingerprint og få browser tracking JWT.
 
 ```bash
-curl -X GET 'https://app.served.dk/api/endpoint' \
-  -H 'Authorization: Bearer <JWT_TOKEN>' \
+# Returnerer JSON med browser tracking JWT (SKAL bruges i Login)
+BROWSER_JWT=$(curl -s -X GET 'https://app.served.dk/api/account/Register?visitorId=550e8400-e29b-41d4-a716-446655440000' | jq -r '.token')
+```
+
+Response format: `{"token": "<JWT>"}`
+
+#### Step 2: Login (kræver browser JWT)
+
+Login MED browser tracking JWT i Authorization header.
+
+```bash
+# Login med browser JWT - returnerer JSON med user JWT
+USER_JWT=$(curl -s -X POST 'https://app.served.dk/api/account/Login' \
+  -H 'Content-Type: application/json' \
+  -H "Authorization: Bearer ${BROWSER_JWT}" \
+  -d '{
+    "email": "thomas@helledi.com",
+    "password": "Served2025",
+    "saveSession": true
+  }' | jq -r '.token')
+```
+
+Response format: `{"token": "<JWT>"}`
+
+**VIGTIGT**: Uden browser JWT i Authorization header fejler Login med HTTP 500.
+
+#### Step 3: Bootstrap User Data
+
+Hent brugerdata inkl. tenants med slug.
+
+```bash
+USER_DATA=$(curl -s -X GET 'https://app.served.dk/api/bootstrap/user' \
+  -H "Authorization: Bearer ${USER_JWT}")
+
+# Hent tenant slug til efterfølgende kald
+TENANT_SLUG=$(echo "$USER_DATA" | jq -r '.tenants[0].slug')
+```
+
+#### Step 4: API Calls (kræver BEGGE tenant headers)
+
+Alle tenant-specifikke endpoints kræver **BEGGE** `Served-Tenant` headers med tenant **SLUG** (ikke ID).
+
+```bash
+curl -X POST 'https://app.served.dk/api/endpoint' \
+  -H "Authorization: Bearer ${USER_JWT}" \
+  -H "Served-Tenant: ${TENANT_SLUG}" \
+  -H "Served-Tenant: ${TENANT_SLUG}" \
   -H 'Content-Type: application/json'
 ```
 
-### API Key
+### API Key Authentication
+
+For programmatisk adgang uden login flow:
 
 ```bash
 curl -X GET 'https://app.served.dk/api/endpoint' \
   -H 'X-API-Key: <API_KEY>' \
   -H 'Content-Type: application/json'
 ```
+
+### Bootstrap Endpoints
+
+| Endpoint | Beskrivelse |
+|----------|-------------|
+| `GET /api/bootstrap/user` | Bruger info, tenants, workspaces |
+| `GET /api/bootstrap/tenant/{slug}` | Tenant data, employees, features |
+| `GET /api/bootstrap/workspace/{tenantSlug}/{workspaceSlug}` | Komplet workspace context |
 
 ---
 
@@ -411,6 +475,89 @@ curl -X POST 'https://app.served.dk/api/finance/invoice/GetKeys' \
 | GET | `/microsoft/drives` | OneDrive drives |
 | GET | `/microsoft/files` | List filer |
 | POST | `/microsoft/upload` | Upload fil |
+
+---
+
+### Companies / Sales (`/api/companies`)
+
+Virksomhedsdatabase med CVR integration, Served Intelligence, og auto-sync.
+
+> **Note**: Dette modul deployes snart. Tjek at backend Served.Api.Companies modulet er aktivt.
+
+#### Master Companies
+
+| Method | Endpoint | Beskrivelse |
+|--------|----------|-------------|
+| POST | `/companies/search` | Søg i master database |
+| GET | `/companies/global-search` | Global søgning (lokal + eksterne API'er) |
+| GET | `/companies/{id}` | Hent virksomhed detaljer |
+| GET | `/companies/cvr/{cvrNumber}` | Slå op via CVR nummer |
+| GET | `/companies/domain/{domain}` | Slå op via domæne |
+| POST | `/companies/import` | Importer til tenant kundeliste |
+
+**Eksempel - Global Search:**
+```bash
+curl -X GET 'https://app.served.dk/api/companies/global-search?query=helledi&country=DK&page=1&pageSize=25' \
+  -H 'Authorization: Bearer <TOKEN>' \
+  -H 'Served-Tenant: served' \
+  -H 'Served-Tenant: served'
+```
+
+**Eksempel - CVR Lookup:**
+```bash
+curl -X GET 'https://app.served.dk/api/companies/cvr/12345678?fetchIfMissing=true' \
+  -H 'Authorization: Bearer <TOKEN>' \
+  -H 'Served-Tenant: served' \
+  -H 'Served-Tenant: served'
+```
+
+**Eksempel - Import virksomhed:**
+```bash
+curl -X POST 'https://app.served.dk/api/companies/import' \
+  -H 'Authorization: Bearer <TOKEN>' \
+  -H 'Served-Tenant: served' \
+  -H 'Served-Tenant: served' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "masterCompanyId": "550e8400-e29b-41d4-a716-446655440000",
+    "autoSyncEnabled": true
+  }'
+```
+
+#### Customer-Company Links (`/api/customer-company-links`)
+
+Auto-sync og berigelse fra master database.
+
+| Method | Endpoint | Beskrivelse |
+|--------|----------|-------------|
+| GET | `/customer-company-links/customer/{customerId}` | Hent link for kunde |
+| POST | `/customer-company-links/link` | Link kunde til virksomhed |
+| DELETE | `/customer-company-links/customer/{customerId}` | Fjern link |
+| POST | `/customer-company-links/customer/{customerId}/sync` | Sync kunde data |
+| POST | `/customer-company-links/auto-match` | Auto-match via CVR |
+| PUT | `/customer-company-links/{linkId}/overridden-fields` | Angiv felter der ikke synces |
+
+**Eksempel - Link kunde:**
+```bash
+curl -X POST 'https://app.served.dk/api/customer-company-links/link' \
+  -H 'Authorization: Bearer <TOKEN>' \
+  -H 'Served-Tenant: served' \
+  -H 'Served-Tenant: served' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "customerId": 123,
+    "masterCompanyId": "550e8400-e29b-41d4-a716-446655440000",
+    "linkSource": "manual"
+  }'
+```
+
+**Eksempel - Auto-match alle kunder:**
+```bash
+curl -X POST 'https://app.served.dk/api/customer-company-links/auto-match' \
+  -H 'Authorization: Bearer <TOKEN>' \
+  -H 'Served-Tenant: served' \
+  -H 'Served-Tenant: served'
+```
 
 ---
 

@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Concurrent;
+using System.Net.Http;
+using System.Net.Http.Headers;
 using System.Text;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -7,10 +9,27 @@ using Served.SDK.Client;
 
 namespace Served.MCP;
 
-public class McpServer(IServedClient servedClient)
+public class McpServer(IServedClient servedClient, string baseUrl, string token, string tenant)
 {
     private readonly IServedClient _servedClient = servedClient;
     private readonly Dictionary<string, Func<JObject, Task<object>>> _tools = new();
+    private readonly HttpClient _httpClient = CreateHttpClient(baseUrl, token, tenant);
+
+    private static HttpClient CreateHttpClient(string baseUrl, string token, string tenant)
+    {
+        var client = new HttpClient { BaseAddress = new Uri(baseUrl) };
+        if (!string.IsNullOrEmpty(token))
+        {
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        }
+        if (!string.IsNullOrEmpty(tenant))
+        {
+            client.DefaultRequestHeaders.Add("X-Tenant-Id", tenant);
+        }
+        return client;
+    }
+
+    public HttpClient Http => _httpClient;
 
     public void RegisterTool(string name, Func<JObject, Task<object>> handler)
     {
