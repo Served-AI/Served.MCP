@@ -4280,5 +4280,95 @@ server.RegisterTool("InvalidateTenantCache", async (args) =>
     return $"✅ Cache invalidated for tenant {tenantId}. Reason: {reason}";
 });
 
+// ----------------------------------------------------------------------
+// Documentation Tools (Unified Docs System)
+// ----------------------------------------------------------------------
+
+server.RegisterTool("DocsSearch", async (args) =>
+{
+    var query = args["query"]?.Value<string>() ?? throw new ArgumentException("query required");
+    var tags = args["tags"]?.Value<string>();
+    var domain = args["domain"]?.Value<string>();
+    var docType = args["type"]?.Value<string>();
+    var limit = args["limit"]?.Value<int>() ?? 10;
+
+    var cmdArgs = $"search \"{query}\" --limit {limit} --format json";
+    if (!string.IsNullOrEmpty(tags)) cmdArgs += $" --tags \"{tags}\"";
+    if (!string.IsNullOrEmpty(domain)) cmdArgs += $" --domain {domain}";
+    if (!string.IsNullOrEmpty(docType)) cmdArgs += $" --type {docType}";
+
+    return await RunServedDocsCmd(cmdArgs);
+});
+
+server.RegisterTool("DocsContext", async (args) =>
+{
+    var query = args["query"]?.Value<string>() ?? throw new ArgumentException("query required");
+    var maxTokens = args["maxTokens"]?.Value<int>() ?? 8000;
+    var format = args["format"]?.Value<string>() ?? "md";
+
+    var cmdArgs = $"context \"{query}\" --max-tokens {maxTokens} --format {format}";
+    return await RunServedDocsCmd(cmdArgs);
+});
+
+server.RegisterTool("DocsSync", async (args) =>
+{
+    var source = args["source"]?.Value<string>();
+    var force = args["force"]?.Value<bool>() ?? false;
+
+    var cmdArgs = source != null ? $"sync source {source}" : "sync all";
+    if (force) cmdArgs += " --force";
+
+    return await RunServedDocsCmd(cmdArgs);
+});
+
+server.RegisterTool("DocsStats", async (args) =>
+{
+    return await RunServedDocsCmd("index stats");
+});
+
+// Helper function to run served-docs CLI
+async Task<string> RunServedDocsCmd(string args)
+{
+    var cliPath = FindServedDocsCli();
+    var psi = new System.Diagnostics.ProcessStartInfo
+    {
+        FileName = cliPath,
+        Arguments = args,
+        RedirectStandardOutput = true,
+        RedirectStandardError = true,
+        UseShellExecute = false,
+        CreateNoWindow = true
+    };
+
+    using var process = System.Diagnostics.Process.Start(psi);
+    if (process == null)
+        throw new Exception("Failed to start served-docs CLI");
+
+    var output = await process.StandardOutput.ReadToEndAsync();
+    var error = await process.StandardError.ReadToEndAsync();
+    await process.WaitForExitAsync();
+
+    if (process.ExitCode != 0)
+        throw new Exception($"served-docs failed: {error}");
+
+    return output;
+}
+
+string FindServedDocsCli()
+{
+    var locations = new[]
+    {
+        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Library", "Python", "3.9", "bin", "served-docs"),
+        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".local", "bin", "served-docs"),
+        "/usr/local/bin/served-docs",
+        "served-docs"
+    };
+
+    foreach (var loc in locations)
+        if (File.Exists(loc)) return loc;
+
+    return "served-docs";
+}
+
 // Start Server
 await server.RunAsync();
