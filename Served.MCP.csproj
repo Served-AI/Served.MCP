@@ -5,6 +5,13 @@
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <Version>2026.1.2</Version>
+    <AssemblyTitle>Served MCP Server</AssemblyTitle>
+    <Description>MCP Server for AI assistants to interact with the Served platform</Description>
+    <Authors>Served</Authors>
+    <Company>Served</Company>
+    <Product>Served.MCP</Product>
+    <PackageTags>mcp;ai;served;claude;llm</PackageTags>
   </PropertyGroup>
 
   <ItemGroup>

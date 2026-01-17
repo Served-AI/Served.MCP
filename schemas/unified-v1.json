@@ -1,0 +1,220 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://served.dk/schemas/unified-v1.json",
+  "title": "Unified File Format",
+  "description": "Schema for Served MCP tool, API endpoint, and skill documentation",
+  "type": "object",
+  "required": ["type", "name"],
+  "properties": {
+    "type": {
+      "type": "string",
+      "enum": ["mcp-tool", "api-endpoint", "skill"],
+      "description": "Document type"
+    },
+    "name": {
+      "type": "string",
+      "description": "Tool, endpoint, or skill name"
+    },
+    "version": {
+      "type": "string",
+      "description": "Version (SemVer or CalVer)"
+    },
+    "domain": {
+      "type": "string",
+      "enum": [
+        "context",
+        "tasks",
+        "projects",
+        "customers",
+        "calendar",
+        "finance",
+        "timetracking",
+        "devops",
+        "intelligence",
+        "files",
+        "canvas",
+        "agents",
+        "analytics",
+        "integrations"
+      ],
+      "description": "Domain category"
+    },
+    "tags": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Searchable tags"
+    },
+    "description": {
+      "type": "string",
+      "description": "Brief description"
+    },
+    "parameters": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/parameter"
+      },
+      "description": "Tool/endpoint parameters"
+    },
+    "response": {
+      "$ref": "#/definitions/response",
+      "description": "Response schema"
+    },
+    "examples": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/example"
+      },
+      "description": "Usage examples"
+    },
+    "workflows": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/workflow"
+      },
+      "description": "Common workflows"
+    },
+    "errors": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/error"
+      },
+      "description": "Error codes and solutions"
+    },
+    "hints": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "AI guidance hints"
+    },
+    "cli_equivalent": {
+      "type": "string",
+      "description": "Equivalent CLI command"
+    },
+    "related": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Related tools/docs"
+    }
+  },
+  "definitions": {
+    "parameter": {
+      "type": "object",
+      "required": ["name", "type"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Parameter name"
+        },
+        "type": {
+          "type": "string",
+          "enum": ["string", "int", "long", "bool", "float", "date", "datetime", "object", "array"],
+          "description": "Parameter type"
+        },
+        "required": {
+          "type": "boolean",
+          "default": false,
+          "description": "Is required"
+        },
+        "default": {
+          "description": "Default value"
+        },
+        "description": {
+          "type": "string",
+          "description": "Parameter description"
+        },
+        "enum": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Allowed values"
+        },
+        "min": {
+          "type": "number",
+          "description": "Minimum value"
+        },
+        "max": {
+          "type": "number",
+          "description": "Maximum value"
+        }
+      }
+    },
+    "response": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "Response type"
+        },
+        "properties": {
+          "type": "object",
+          "description": "Response properties"
+        },
+        "example": {
+          "type": "object",
+          "description": "Example response"
+        }
+      }
+    },
+    "example": {
+      "type": "object",
+      "required": ["name"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Example name"
+        },
+        "description": {
+          "type": "string",
+          "description": "Example description"
+        },
+        "request": {
+          "type": "object",
+          "description": "Request parameters"
+        },
+        "response": {
+          "type": "object",
+          "description": "Expected response"
+        }
+      }
+    },
+    "workflow": {
+      "type": "object",
+      "required": ["name", "steps"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Workflow name"
+        },
+        "description": {
+          "type": "string",
+          "description": "Workflow description"
+        },
+        "steps": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Workflow steps"
+        }
+      }
+    },
+    "error": {
+      "type": "object",
+      "required": ["code"],
+      "properties": {
+        "code": {
+          "type": "string",
+          "description": "Error code"
+        },
+        "message": {
+          "type": "string",
+          "description": "Error message"
+        },
+        "cause": {
+          "type": "string",
+          "description": "Error cause"
+        },
+        "solution": {
+          "type": "string",
+          "description": "How to fix"
+        }
+      }
+    }
+  }
+}

@@ -7,15 +7,47 @@ using Served.SDK.Client;
 using Served.SDK.Models.Projects;
 using Served.SDK.Models.Dashboards;
 using Served.SDK.Models.Datasource;
+using Served.SDK.Tracing;
 
-// Configuration - In a real app, load from env vars or config file
+// Configuration - Load from env vars
 var baseUrl = Environment.GetEnvironmentVariable("SERVED_API_URL") ?? "https://app.served.dk";
 var token = Environment.GetEnvironmentVariable("SERVED_API_TOKEN") ?? "";
 var tenant = Environment.GetEnvironmentVariable("SERVED_TENANT") ?? "";
+var enableTracing = Environment.GetEnvironmentVariable("SERVED_TRACING_ENABLED")?.Equals("true", StringComparison.OrdinalIgnoreCase) ?? true;
 
-// SDK Initialization
-var client = new ServedClient(baseUrl, token, tenant);
+// SDK Initialization with Tracing
+var clientBuilder = new ServedClientBuilder()
+    .WithBaseUrl(baseUrl)
+    .WithToken(token)
+    .WithTenant(tenant);
+
+// Enable tracing if configured (default: on)
+if (enableTracing)
+{
+    clientBuilder.WithTracing(options =>
+    {
+        options.ServiceName = "served-mcp-server";
+        options.ServiceVersion = "2026.1.2";
+        options.Environment = Environment.GetEnvironmentVariable("SERVED_ENVIRONMENT") ?? "development";
+
+        // Enable Forge integration for Served-native observability
+        options.EnableForge = true;
+
+        // Error detection settings
+        options.ErrorDetection.CaptureSlowRequests = true;
+        options.ErrorDetection.SlowRequestThresholdMs = 3000;
+
+        // Sample all MCP requests (important for debugging)
+        options.SamplingRate = 1.0;
+        options.AlwaysSampleErrors = true;
+    });
+}
+
+using var client = clientBuilder.Build();
 var server = new McpServer(client, baseUrl, token, tenant);
+
+// Log tracing status
+Console.Error.WriteLine($"[MCP] Tracing enabled: {client.IsTracingEnabled}");
 
 // ----------------------------------------------------------------------
 // Project Tools
@@ -4369,6 +4401,2953 @@ string FindServedDocsCli()
 
     return "served-docs";
 }
+
+// ----------------------------------------------------------------------
+// Build Detection Tools (F53 - Unified Build Detection)
+// ----------------------------------------------------------------------
+
+server.RegisterTool("GetBuildStatus", async (args) =>
+{
+    var projectsFile = Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+        ".served", "projects.unified.yaml");
+
+    if (!File.Exists(projectsFile))
+    {
+        return "No project index found. Run 'served build index' in the ServedApp repository to create one.";
+    }
+
+    var yaml = await File.ReadAllTextAsync(projectsFile);
+    var lines = yaml.Split('\n');
+
+    var sb = new StringBuilder();
+    sb.AppendLine("# Build Status");
+    sb.AppendLine();
+
+    // Extract metadata
+    var repo = lines.FirstOrDefault(l => l.StartsWith("@repo:"))?.Replace("@repo:", "").Trim();
+    var at = lines.FirstOrDefault(l => l.StartsWith("@at:"))?.Replace("@at:", "").Trim();
+
+    sb.AppendLine($"**Repository:** {repo ?? "Unknown"}");
+    sb.AppendLine($"**Last indexed:** {at ?? "Unknown"}");
+    sb.AppendLine();
+
+    // Count projects by type
+    var inDotnet = false;
+    var inNode = false;
+    var inSwift = false;
+    var dotnetProjects = new List<string>();
+    var nodeProjects = new List<string>();
+    var swiftProjects = new List<string>();
+
+    foreach (var line in lines)
+    {
+        if (line.StartsWith("dotnet:")) { inDotnet = true; inNode = false; inSwift = false; continue; }
+        if (line.StartsWith("node:")) { inDotnet = false; inNode = true; inSwift = false; continue; }
+        if (line.StartsWith("swift:")) { inDotnet = false; inNode = false; inSwift = true; continue; }
+        if (line.StartsWith("sum:")) break;
+
+        if (line.Trim().StartsWith("- n:"))
+        {
+            var name = line.Replace("- n:", "").Trim();
+            if (inDotnet) dotnetProjects.Add(name);
+            else if (inNode) nodeProjects.Add(name);
+            else if (inSwift) swiftProjects.Add(name);
+        }
+    }
+
+    sb.AppendLine($"## Summary");
+    sb.AppendLine($"- **.NET projects:** {dotnetProjects.Count}");
+    sb.AppendLine($"- **Node.js projects:** {nodeProjects.Count}");
+    sb.AppendLine($"- **Swift projects:** {swiftProjects.Count}");
+    sb.AppendLine($"- **Total:** {dotnetProjects.Count + nodeProjects.Count + swiftProjects.Count}");
+    sb.AppendLine();
+
+    // List some projects
+    if (dotnetProjects.Count > 0)
+    {
+        sb.AppendLine("## .NET Projects");
+        foreach (var p in dotnetProjects.Take(10))
+            sb.AppendLine($"- {p}");
+        if (dotnetProjects.Count > 10)
+            sb.AppendLine($"- ... and {dotnetProjects.Count - 10} more");
+        sb.AppendLine();
+    }
+
+    if (nodeProjects.Count > 0)
+    {
+        sb.AppendLine("## Node.js Projects");
+        foreach (var p in nodeProjects.Take(10))
+            sb.AppendLine($"- {p}");
+        if (nodeProjects.Count > 10)
+            sb.AppendLine($"- ... and {nodeProjects.Count - 10} more");
+        sb.AppendLine();
+    }
+
+    if (swiftProjects.Count > 0)
+    {
+        sb.AppendLine("## Swift Projects");
+        foreach (var p in swiftProjects.Take(10))
+            sb.AppendLine($"- {p}");
+        if (swiftProjects.Count > 10)
+            sb.AppendLine($"- ... and {swiftProjects.Count - 10} more");
+    }
+
+    return sb.ToString();
+});
+
+server.RegisterTool("GetBuildPatterns", async (args) =>
+{
+    var buildsFile = Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+        ".served", "builds.unified.yaml");
+
+    if (!File.Exists(buildsFile))
+    {
+        return "No build data found. Run 'served build watch <project>' to collect build patterns.";
+    }
+
+    var yaml = await File.ReadAllTextAsync(buildsFile);
+
+    var sb = new StringBuilder();
+    sb.AppendLine("# Detected Build Patterns");
+    sb.AppendLine();
+
+    // Parse patterns section
+    var inPatterns = false;
+    var currentPattern = new Dictionary<string, string>();
+    var patterns = new List<Dictionary<string, string>>();
+
+    foreach (var line in yaml.Split('\n'))
+    {
+        if (line.StartsWith("patterns:")) { inPatterns = true; continue; }
+        if (line.StartsWith("changes:") || line.StartsWith("recent:")) { inPatterns = false; }
+
+        if (inPatterns && line.Trim().StartsWith("- id:"))
+        {
+            if (currentPattern.Count > 0) patterns.Add(currentPattern);
+            currentPattern = new Dictionary<string, string>();
+            currentPattern["id"] = line.Replace("- id:", "").Trim();
+        }
+        else if (inPatterns && currentPattern.Count > 0)
+        {
+            var trimmed = line.Trim();
+            if (trimmed.StartsWith("freq:")) currentPattern["freq"] = trimmed.Replace("freq:", "").Trim();
+            else if (trimmed.StartsWith("severity:")) currentPattern["severity"] = trimmed.Replace("severity:", "").Trim();
+            else if (trimmed.StartsWith("suggestion:")) currentPattern["suggestion"] = trimmed.Replace("suggestion:", "").Trim();
+        }
+    }
+    if (currentPattern.Count > 0) patterns.Add(currentPattern);
+
+    if (patterns.Count == 0)
+    {
+        sb.AppendLine("No patterns detected yet. Run builds with 'served build watch' to detect patterns.");
+        return sb.ToString();
+    }
+
+    // Sort by frequency
+    patterns = patterns.OrderByDescending(p => int.TryParse(p.GetValueOrDefault("freq", "0"), out var f) ? f : 0).ToList();
+
+    foreach (var p in patterns)
+    {
+        var sevIcon = p.GetValueOrDefault("severity", "low") switch
+        {
+            "high" => "🔴",
+            "medium" => "🟡",
+            _ => "🟢"
+        };
+
+        sb.AppendLine($"## {sevIcon} {p.GetValueOrDefault("id", "unknown")}");
+        sb.AppendLine($"- **Frequency:** {p.GetValueOrDefault("freq", "0")} occurrences");
+        sb.AppendLine($"- **Severity:** {p.GetValueOrDefault("severity", "low")}");
+        sb.AppendLine($"- **Suggestion:** {p.GetValueOrDefault("suggestion", "N/A")}");
+        sb.AppendLine();
+    }
+
+    return sb.ToString();
+});
+
+server.RegisterTool("GetProjectInfo", async (args) =>
+{
+    var projectName = args["projectName"]?.Value<string>();
+
+    if (string.IsNullOrEmpty(projectName))
+    {
+        return "Error: projectName argument is required. Example: { \"projectName\": \"ServedApi\" }";
+    }
+
+    var projectsFile = Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+        ".served", "projects.unified.yaml");
+
+    if (!File.Exists(projectsFile))
+    {
+        return "No project index found. Run 'served build index' to create one.";
+    }
+
+    var yaml = await File.ReadAllTextAsync(projectsFile);
+    var lines = yaml.Split('\n');
+
+    var sb = new StringBuilder();
+    var foundProject = false;
+    var inProject = false;
+    var projectType = "";
+
+    foreach (var line in lines)
+    {
+        if (line.StartsWith("dotnet:")) { projectType = ".NET"; continue; }
+        if (line.StartsWith("node:")) { projectType = "Node.js"; continue; }
+        if (line.StartsWith("swift:")) { projectType = "Swift"; continue; }
+        if (line.StartsWith("sum:")) break;
+
+        if (line.Trim().StartsWith($"- n: {projectName}"))
+        {
+            foundProject = true;
+            inProject = true;
+            sb.AppendLine($"# Project: {projectName}");
+            sb.AppendLine($"**Type:** {projectType}");
+            continue;
+        }
+
+        if (inProject)
+        {
+            if (line.Trim().StartsWith("- n:"))
+            {
+                inProject = false;
+                break;
+            }
+
+            var trimmed = line.Trim();
+            if (trimmed.StartsWith("p:")) sb.AppendLine($"**Path:** {trimmed.Replace("p:", "").Trim()}");
+            else if (trimmed.StartsWith("fw:")) sb.AppendLine($"**Framework:** {trimmed.Replace("fw:", "").Trim()}");
+            else if (trimmed.StartsWith("t:")) sb.AppendLine($"**Project Type:** {trimmed.Replace("t:", "").Trim()}");
+            else if (trimmed.StartsWith("pm:")) sb.AppendLine($"**Package Manager:** {trimmed.Replace("pm:", "").Trim()}");
+            else if (trimmed.StartsWith("deps:")) sb.AppendLine($"**Dependencies:** {trimmed.Replace("deps:", "").Trim()}");
+            else if (trimmed.StartsWith("b:")) sb.AppendLine($"**Build Status:** {trimmed.Replace("b:", "").Trim()}");
+        }
+    }
+
+    if (!foundProject)
+    {
+        return $"Project '{projectName}' not found in index. Run 'served build status' to see available projects.";
+    }
+
+    return sb.ToString();
+});
+
+server.RegisterTool("GetBuildHistory", async (args) =>
+{
+    var limit = args["limit"]?.Value<int>() ?? 10;
+
+    var buildsFile = Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+        ".served", "builds.unified.yaml");
+
+    if (!File.Exists(buildsFile))
+    {
+        return "No build history found. Run 'served build watch <project>' to collect build data.";
+    }
+
+    var yaml = await File.ReadAllTextAsync(buildsFile);
+
+    var sb = new StringBuilder();
+    sb.AppendLine("# Build History");
+    sb.AppendLine();
+
+    // Parse recent section
+    var inRecent = false;
+    var currentBuild = new Dictionary<string, string>();
+    var builds = new List<Dictionary<string, string>>();
+
+    foreach (var line in yaml.Split('\n'))
+    {
+        if (line.StartsWith("recent:")) { inRecent = true; continue; }
+        if (line.StartsWith("patterns:") || line.StartsWith("changes:") || line.StartsWith("active:"))
+        {
+            if (inRecent && currentBuild.Count > 0) builds.Add(currentBuild);
+            inRecent = false;
+        }
+
+        if (inRecent && line.Trim().StartsWith("- p:"))
+        {
+            if (currentBuild.Count > 0) builds.Add(currentBuild);
+            currentBuild = new Dictionary<string, string>();
+            currentBuild["p"] = line.Replace("- p:", "").Trim();
+        }
+        else if (inRecent && currentBuild.Count > 0)
+        {
+            var trimmed = line.Trim();
+            if (trimmed.StartsWith("at:")) currentBuild["at"] = trimmed.Replace("at:", "").Trim();
+            else if (trimmed.StartsWith("r:")) currentBuild["r"] = trimmed.Replace("r:", "").Trim();
+            else if (trimmed.StartsWith("w:")) currentBuild["w"] = trimmed.Replace("w:", "").Trim();
+            else if (trimmed.StartsWith("e:")) currentBuild["e"] = trimmed.Replace("e:", "").Trim();
+            else if (trimmed.StartsWith("d:")) currentBuild["d"] = trimmed.Replace("d:", "").Trim();
+        }
+    }
+    if (currentBuild.Count > 0) builds.Add(currentBuild);
+
+    if (builds.Count == 0)
+    {
+        sb.AppendLine("No build history available yet.");
+        return sb.ToString();
+    }
+
+    sb.AppendLine("| Project | Time | Result | Warnings | Errors | Duration |");
+    sb.AppendLine("|---------|------|--------|----------|--------|----------|");
+
+    foreach (var b in builds.Take(limit))
+    {
+        var resultIcon = b.GetValueOrDefault("r", "?") switch
+        {
+            "ok" => "✅",
+            "warn" => "⚠️",
+            "err" => "❌",
+            "fail" => "💥",
+            _ => "❓"
+        };
+
+        var duration = int.TryParse(b.GetValueOrDefault("d", "0"), out var ms)
+            ? $"{ms / 1000.0:F1}s"
+            : "-";
+
+        sb.AppendLine($"| {b.GetValueOrDefault("p", "-")} | {b.GetValueOrDefault("at", "-")} | {resultIcon} | {b.GetValueOrDefault("w", "0")} | {b.GetValueOrDefault("e", "0")} | {duration} |");
+    }
+
+    return sb.ToString();
+});
+
+// ----------------------------------------------------------------------
+// Tag Detection Tools
+// ----------------------------------------------------------------------
+
+server.RegisterTool("ScanForTags", async (args) =>
+{
+    var content = args["content"]?.Value<string>() ?? throw new ArgumentException("content required");
+
+    var payload = new JObject { ["content"] = content };
+    var response = await server.Http.PostAsync(
+        "/api/audit/tags/scan",
+        new StringContent(payload.ToString(), Encoding.UTF8, "application/json"));
+
+    if (!response.IsSuccessStatusCode)
+    {
+        var error = await response.Content.ReadAsStringAsync();
+        return $"Error scanning for tags: {error}";
+    }
+
+    var result = JObject.Parse(await response.Content.ReadAsStringAsync());
+    var sb = new StringBuilder();
+    sb.AppendLine("# Tag Detection Results");
+    sb.AppendLine();
+
+    var actionTags = result["actionTags"] as JArray ?? new JArray();
+    var statusTags = result["statusTags"] as JArray ?? new JArray();
+    var domainTags = result["domainTags"] as JArray ?? new JArray();
+    var processingTags = result["processingTags"] as JArray ?? new JArray();
+    var mentions = result["mentions"] as JArray ?? new JArray();
+
+    if (actionTags.Count > 0)
+        sb.AppendLine($"**Action Tags:** {string.Join(", ", actionTags.Select(t => t.ToString()))}");
+    if (statusTags.Count > 0)
+        sb.AppendLine($"**Status Tags:** {string.Join(", ", statusTags.Select(t => t.ToString()))}");
+    if (domainTags.Count > 0)
+        sb.AppendLine($"**Domain Tags:** {string.Join(", ", domainTags.Select(t => t.ToString()))}");
+    if (processingTags.Count > 0)
+        sb.AppendLine($"**Processing Tags:** {string.Join(", ", processingTags.Select(t => t.ToString()))}");
+    if (mentions.Count > 0)
+    {
+        sb.AppendLine("**Mentions:**");
+        foreach (var m in mentions)
+        {
+            sb.AppendLine($"  - @{m["handle"]} ({m["type"]})");
+        }
+    }
+
+    if (actionTags.Count == 0 && statusTags.Count == 0 && domainTags.Count == 0 && mentions.Count == 0)
+    {
+        sb.AppendLine("No tags or mentions detected.");
+    }
+
+    return sb.ToString();
+});
+
+server.RegisterTool("CreateTagDetection", async (args) =>
+{
+    var content = args["content"]?.Value<string>() ?? throw new ArgumentException("content required");
+    var source = args["source"]?.Value<string>() ?? "mcp";
+    var sourceId = args["sourceId"]?.Value<string>();
+    var processingTier = args["processingTier"]?.Value<string>() ?? "scheduled";
+    var processImmediately = args["processImmediately"]?.Value<bool>() ?? false;
+
+    var payload = new JObject
+    {
+        ["content"] = content,
+        ["source"] = source,
+        ["sourceId"] = sourceId,
+        ["processingTier"] = processingTier,
+        ["processImmediately"] = processImmediately,
+        ["actorType"] = "agent"
+    };
+
+    var response = await server.Http.PostAsync(
+        "/api/audit/tags/detect",
+        new StringContent(payload.ToString(), Encoding.UTF8, "application/json"));
+
+    if (!response.IsSuccessStatusCode)
+    {
+        var error = await response.Content.ReadAsStringAsync();
+        return $"Error creating detection: {error}";
+    }
+
+    var result = JObject.Parse(await response.Content.ReadAsStringAsync());
+    return new
+    {
+        message = "Detection created successfully",
+        detectionId = result["detectionId"]?.Value<long>(),
+        tagCount = result["tagCount"]?.Value<int>(),
+        mentionCount = result["mentionCount"]?.Value<int>(),
+        processingTier = result["processingTier"]?.Value<string>(),
+        processed = result["processed"]?.Value<bool>()
+    };
+});
+
+server.RegisterTool("GetPendingTagDetections", async (args) =>
+{
+    var response = await server.Http.GetAsync("/api/audit/tags/pending");
+
+    if (!response.IsSuccessStatusCode)
+    {
+        var error = await response.Content.ReadAsStringAsync();
+        return $"Error getting pending detections: {error}";
+    }
+
+    var detections = JArray.Parse(await response.Content.ReadAsStringAsync());
+
+    if (detections.Count == 0)
+    {
+        return "No pending tag detections.";
+    }
+
+    var sb = new StringBuilder();
+    sb.AppendLine("# Pending Tag Detections");
+    sb.AppendLine();
+    sb.AppendLine("| ID | Source | Tags | Mentions | Tier | Created |");
+    sb.AppendLine("|----|--------|------|----------|------|---------|");
+
+    foreach (var d in detections)
+    {
+        var tags = d["tags"]?.Value<string>() ?? "-";
+        var mentions = d["mentions"]?.Value<string>() ?? "-";
+        var tier = d["processingTier"]?.Value<string>() ?? "-";
+        var created = d["createdAt"]?.Value<DateTime>().ToString("MM-dd HH:mm") ?? "-";
+
+        sb.AppendLine($"| {d["id"]} | {d["source"]} | {tags} | {mentions} | {tier} | {created} |");
+    }
+
+    return sb.ToString();
+});
+
+// ----------------------------------------------------------------------
+// Serva AI Marketing Tools
+// ----------------------------------------------------------------------
+
+server.RegisterTool("GetServaQueue", async (args) =>
+{
+    var response = await server.Http.GetAsync("/api/serva/queue");
+
+    if (!response.IsSuccessStatusCode)
+    {
+        var error = await response.Content.ReadAsStringAsync();
+        return $"Error getting Serva queue: {error}";
+    }
+
+    var queue = JArray.Parse(await response.Content.ReadAsStringAsync());
+
+    if (queue.Count == 0)
+    {
+        return "Serva queue is empty. No items pending review.";
+    }
+
+    var sb = new StringBuilder();
+    sb.AppendLine("# Serva Review Queue");
+    sb.AppendLine();
+
+    foreach (var item in queue)
+    {
+        sb.AppendLine($"## Item {item["id"]}");
+        sb.AppendLine($"**Source:** {item["source"]} | **Priority:** {item["priority"]}");
+        sb.AppendLine($"**Status:** {item["status"]} | **Created:** {item["createdAt"]}");
+        sb.AppendLine();
+        sb.AppendLine("**Original:**");
+        sb.AppendLine($"> {item["originalContent"]}");
+        sb.AppendLine();
+        sb.AppendLine("**Draft Response:**");
+        sb.AppendLine($"> {item["draftResponse"]}");
+        sb.AppendLine();
+        sb.AppendLine("---");
+    }
+
+    return sb.ToString();
+});
+
+server.RegisterTool("ApproveServaItem", async (args) =>
+{
+    var itemId = args["itemId"]?.Value<long>() ?? throw new ArgumentException("itemId required");
+    var editedResponse = args["editedResponse"]?.Value<string>();
+
+    var payload = new JObject();
+    if (!string.IsNullOrEmpty(editedResponse))
+    {
+        payload["editedResponse"] = editedResponse;
+    }
+
+    var response = await server.Http.PostAsync(
+        $"/api/serva/queue/{itemId}/approve",
+        new StringContent(payload.ToString(), Encoding.UTF8, "application/json"));
+
+    if (!response.IsSuccessStatusCode)
+    {
+        var error = await response.Content.ReadAsStringAsync();
+        return $"Error approving item: {error}";
+    }
+
+    return $"Item {itemId} approved and response sent.";
+});
+
+server.RegisterTool("RejectServaItem", async (args) =>
+{
+    var itemId = args["itemId"]?.Value<long>() ?? throw new ArgumentException("itemId required");
+    var reason = args["reason"]?.Value<string>();
+
+    var payload = new JObject { ["reason"] = reason };
+
+    var response = await server.Http.PostAsync(
+        $"/api/serva/queue/{itemId}/reject",
+        new StringContent(payload.ToString(), Encoding.UTF8, "application/json"));
+
+    if (!response.IsSuccessStatusCode)
+    {
+        var error = await response.Content.ReadAsStringAsync();
+        return $"Error rejecting item: {error}";
+    }
+
+    return $"Item {itemId} rejected.";
+});
+
+server.RegisterTool("GetServaSettings", async (args) =>
+{
+    var response = await server.Http.GetAsync("/api/serva/settings");
+
+    if (!response.IsSuccessStatusCode)
+    {
+        var error = await response.Content.ReadAsStringAsync();
+        return $"Error getting Serva settings: {error}";
+    }
+
+    var settings = JObject.Parse(await response.Content.ReadAsStringAsync());
+
+    var sb = new StringBuilder();
+    sb.AppendLine("# Serva Settings");
+    sb.AppendLine();
+    sb.AppendLine($"**Automation Level:** {settings["automationLevel"]} (1=manual, 4=full auto)");
+    sb.AppendLine($"**Brand Voice:** {settings["brandVoice"]}");
+    sb.AppendLine($"**Language:** {settings["responseLanguage"]}");
+    sb.AppendLine($"**Auto-Response Enabled:** {settings["autoResponseEnabled"]}");
+
+    if (settings["keywords"] is JArray keywords && keywords.Count > 0)
+    {
+        sb.AppendLine($"**Keywords:** {string.Join(", ", keywords.Select(k => k.ToString()))}");
+    }
+
+    return sb.ToString();
+});
+
+// ----------------------------------------------------------------------
+// Social Media Monitoring Tools
+// ----------------------------------------------------------------------
+
+server.RegisterTool("GetSocialMentions", async (args) =>
+{
+    var status = args["status"]?.Value<string>();
+    var platform = args["platform"]?.Value<string>();
+    var limit = args["limit"]?.Value<int>() ?? 20;
+
+    var url = $"/api/social/monitoring/mentions?limit={limit}";
+    if (!string.IsNullOrEmpty(status)) url += $"&status={status}";
+    if (!string.IsNullOrEmpty(platform)) url += $"&platform={platform}";
+
+    var response = await server.Http.GetAsync(url);
+
+    if (!response.IsSuccessStatusCode)
+    {
+        var error = await response.Content.ReadAsStringAsync();
+        return $"Error getting mentions: {error}";
+    }
+
+    var mentions = JArray.Parse(await response.Content.ReadAsStringAsync());
+
+    if (mentions.Count == 0)
+    {
+        return "No social mentions found.";
+    }
+
+    var sb = new StringBuilder();
+    sb.AppendLine("# Social Media Mentions");
+    sb.AppendLine();
+
+    foreach (var m in mentions)
+    {
+        var sentiment = m["sentimentScore"]?.Value<decimal>() ?? 0;
+        var sentimentIcon = sentiment > 0.3m ? "😊" : sentiment < -0.3m ? "😠" : "😐";
+
+        sb.AppendLine($"## [{m["platform"]}] @{m["authorHandle"]} {sentimentIcon}");
+        sb.AppendLine($"**ID:** {m["id"]} | **Intent:** {m["detectedIntent"]} | **Status:** {m["responseStatus"]}");
+        sb.AppendLine();
+        sb.AppendLine($"> {m["content"]}");
+        sb.AppendLine();
+
+        if (m["draftResponse"]?.Value<string>() is { } draft && !string.IsNullOrEmpty(draft))
+        {
+            sb.AppendLine("**Draft Response:**");
+            sb.AppendLine($"> {draft}");
+            sb.AppendLine();
+        }
+
+        sb.AppendLine($"[View]({m["platformPostUrl"]})");
+        sb.AppendLine();
+        sb.AppendLine("---");
+    }
+
+    return sb.ToString();
+});
+
+server.RegisterTool("RespondToSocialMention", async (args) =>
+{
+    var mentionId = args["mentionId"]?.Value<long>() ?? throw new ArgumentException("mentionId required");
+    var response_text = args["response"]?.Value<string>();
+    var action = args["action"]?.Value<string>() ?? "accept"; // accept, custom, skip, auto
+
+    HttpResponseMessage response;
+
+    if (action == "skip")
+    {
+        response = await server.Http.PostAsync(
+            $"/api/social/monitoring/mentions/{mentionId}/skip",
+            new StringContent("{}", Encoding.UTF8, "application/json"));
+    }
+    else if (action == "auto")
+    {
+        response = await server.Http.PostAsync(
+            $"/api/social/monitoring/mentions/{mentionId}/auto",
+            new StringContent("{}", Encoding.UTF8, "application/json"));
+    }
+    else if (action == "custom" && !string.IsNullOrEmpty(response_text))
+    {
+        var payload = new JObject { ["response"] = response_text };
+        response = await server.Http.PostAsync(
+            $"/api/social/monitoring/mentions/{mentionId}/respond",
+            new StringContent(payload.ToString(), Encoding.UTF8, "application/json"));
+    }
+    else
+    {
+        // Accept draft
+        response = await server.Http.PostAsync(
+            $"/api/social/monitoring/mentions/{mentionId}/accept",
+            new StringContent("{}", Encoding.UTF8, "application/json"));
+    }
+
+    if (!response.IsSuccessStatusCode)
+    {
+        var error = await response.Content.ReadAsStringAsync();
+        return $"Error responding to mention: {error}";
+    }
+
+    return $"Mention {mentionId} {action} successfully.";
+});
+
+server.RegisterTool("GetSocialKeywords", async (args) =>
+{
+    var response = await server.Http.GetAsync("/api/social/monitoring/keywords");
+
+    if (!response.IsSuccessStatusCode)
+    {
+        var error = await response.Content.ReadAsStringAsync();
+        return $"Error getting keywords: {error}";
+    }
+
+    var config = JObject.Parse(await response.Content.ReadAsStringAsync());
+
+    var sb = new StringBuilder();
+    sb.AppendLine("# Social Monitoring Keywords");
+    sb.AppendLine();
+
+    if (config["keywords"] is JArray keywords && keywords.Count > 0)
+    {
+        sb.AppendLine("**Keywords:**");
+        foreach (var k in keywords)
+        {
+            sb.AppendLine($"  - {k}");
+        }
+    }
+    else
+    {
+        sb.AppendLine("No keywords configured.");
+    }
+
+    sb.AppendLine();
+
+    if (config["enabledPlatforms"] is JArray platforms && platforms.Count > 0)
+    {
+        sb.AppendLine($"**Enabled Platforms:** {string.Join(", ", platforms.Select(p => p.ToString()))}");
+    }
+
+    if (config["excludeHandles"] is JArray excludes && excludes.Count > 0)
+    {
+        sb.AppendLine($"**Excluded Handles:** {string.Join(", ", excludes.Select(e => e.ToString()))}");
+    }
+
+    return sb.ToString();
+});
+
+server.RegisterTool("GetSocialStats", async (args) =>
+{
+    var days = args["days"]?.Value<int>() ?? 30;
+
+    var response = await server.Http.GetAsync($"/api/social/monitoring/stats?days={days}");
+
+    if (!response.IsSuccessStatusCode)
+    {
+        var error = await response.Content.ReadAsStringAsync();
+        return $"Error getting social stats: {error}";
+    }
+
+    var stats = JObject.Parse(await response.Content.ReadAsStringAsync());
+
+    var sb = new StringBuilder();
+    sb.AppendLine($"# Social Media Stats (Last {days} Days)");
+    sb.AppendLine();
+    sb.AppendLine($"**Total Mentions:** {stats["totalMentions"]}");
+    sb.AppendLine($"**Responses Sent:** {stats["responsesSent"]}");
+    sb.AppendLine($"**Average Response Time:** {stats["averageResponseTime"]}");
+    sb.AppendLine($"**Average Sentiment:** {stats["averageSentiment"]:F2}");
+    sb.AppendLine();
+
+    if (stats["platformBreakdown"] is JObject platforms)
+    {
+        sb.AppendLine("**By Platform:**");
+        foreach (var prop in platforms.Properties())
+        {
+            sb.AppendLine($"  - {prop.Name}: {prop.Value}");
+        }
+    }
+
+    return sb.ToString();
+});
+
+// ----------------------------------------------------------------------
+// File Tools (Local Filesystem with Tooling Auth)
+// ----------------------------------------------------------------------
+
+server.RegisterTool("served_file_find", async (args) =>
+{
+    var path = args["path"]?.Value<string>() ?? Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+    var name = args["name"]?.Value<string>();
+    var regex = args["regex"]?.Value<string>();
+    var ext = args["ext"]?.Value<string>();
+    var type = args["type"]?.Value<string>() ?? "f";
+    var depth = args["depth"]?.Value<int>() ?? 0;
+    var sizeFilter = args["size"]?.Value<string>();
+    var newer = args["newer"]?.Value<string>();
+    var older = args["older"]?.Value<string>();
+    var contains = args["contains"]?.Value<string>();
+    var allowPattern = args["allow"]?.Value<string>();
+    var maxResults = args["max"]?.Value<int>() ?? 500;
+    var showHidden = args["hidden"]?.Value<bool>() ?? false;
+    var sort = args["sort"]?.Value<string>() ?? "date";
+    var reverse = args["reverse"]?.Value<bool>() ?? false;
+    var preset = args["preset"]?.Value<string>();
+
+    // Expand ~
+    if (path.StartsWith("~"))
+    {
+        path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), path[1..].TrimStart('/'));
+    }
+
+    if (!Directory.Exists(path))
+    {
+        return new { success = false, error = $"Path does not exist: {path}" };
+    }
+
+    // File type presets
+    var presets = new Dictionary<string, string[]>
+    {
+        ["code"] = new[] { "cs", "ts", "js", "py", "go", "rs", "java", "kt", "swift", "rb", "php", "c", "cpp", "h", "hpp", "m", "mm" },
+        ["web"] = new[] { "html", "htm", "css", "scss", "sass", "less", "vue", "jsx", "tsx", "svelte" },
+        ["config"] = new[] { "json", "yaml", "yml", "toml", "ini", "conf", "env", "xml", "plist" },
+        ["docs"] = new[] { "md", "txt", "rst", "doc", "docx", "pdf", "rtf", "odt" },
+        ["media"] = new[] { "jpg", "jpeg", "png", "gif", "bmp", "svg", "mp3", "wav", "mp4", "mov", "avi", "mkv" },
+        ["data"] = new[] { "csv", "tsv", "json", "xml", "sqlite", "db", "parquet", "xlsx" },
+        ["archive"] = new[] { "zip", "tar", "gz", "bz2", "7z", "rar", "xz" }
+    };
+
+    if (preset != null && presets.TryGetValue(preset.ToLower(), out var presetExts))
+    {
+        ext = string.Join(",", presetExts);
+    }
+
+    // Build extension set
+    var extensions = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+    if (!string.IsNullOrEmpty(ext))
+    {
+        foreach (var e in ext.Split(',', StringSplitOptions.RemoveEmptyEntries))
+        {
+            extensions.Add(e.TrimStart('.'));
+        }
+    }
+
+    // Excluded paths for performance
+    var excludedPaths = new[] { "node_modules", ".git/objects", "bin/Debug", "bin/Release", "obj/Debug", "obj/Release",
+        ".nuget", ".npm", ".cache", "__pycache__", ".venv", "venv", "dist", "build", ".next", ".turbo",
+        "coverage", ".pytest_cache", "DerivedData", "xcuserdata", ".Spotlight-V100", ".fseventsd" };
+
+    // Sensitive path patterns
+    var sensitivePatterns = new[] { @"\.ssh", @"\.aws", @"\.gnupg", @"Keychains", @"\.env$", @"credentials", @"secrets",
+        @"Google/Chrome", @"Mozilla/Firefox", @"\.pem$", @"\.key$", @"id_rsa", @"id_ed25519" };
+
+    var results = new List<object>();
+    var scanned = 0;
+    var sensitiveSkipped = 0;
+    var excludedSkipped = 0;
+    var allowedPatternRegex = allowPattern != null ? new System.Text.RegularExpressions.Regex(allowPattern, System.Text.RegularExpressions.RegexOptions.IgnoreCase) : null;
+
+    // Size parser
+    long? ParseSize(string? s)
+    {
+        if (string.IsNullOrEmpty(s)) return null;
+        var multiplier = 1L;
+        var upper = s.ToUpper();
+        if (upper.EndsWith("K")) { multiplier = 1024L; s = s[..^1]; }
+        else if (upper.EndsWith("M")) { multiplier = 1024L * 1024L; s = s[..^1]; }
+        else if (upper.EndsWith("G")) { multiplier = 1024L * 1024L * 1024L; s = s[..^1]; }
+        if (long.TryParse(s.TrimStart('+', '-'), out var val))
+            return val * multiplier;
+        return null;
+    }
+
+    DateTime? ParseDate(string? s)
+    {
+        if (string.IsNullOrEmpty(s)) return null;
+        if (s.EndsWith("d", StringComparison.OrdinalIgnoreCase) && int.TryParse(s[..^1], out var days))
+            return DateTime.Now.AddDays(-days);
+        if (s.EndsWith("h", StringComparison.OrdinalIgnoreCase) && int.TryParse(s[..^1], out var hours))
+            return DateTime.Now.AddHours(-hours);
+        if (DateTime.TryParse(s, out var dt))
+            return dt;
+        return null;
+    }
+
+    var minSize = sizeFilter?.StartsWith("+") == true ? ParseSize(sizeFilter) : null;
+    var maxSize = sizeFilter?.StartsWith("-") == true ? ParseSize(sizeFilter) : null;
+    var newerThan = ParseDate(newer);
+    var olderThan = ParseDate(older);
+    var nameRegex = regex != null ? new System.Text.RegularExpressions.Regex(regex, System.Text.RegularExpressions.RegexOptions.IgnoreCase) : null;
+
+    void Search(string dir, int currentDepth)
+    {
+        if (results.Count >= maxResults) return;
+        if (depth > 0 && currentDepth > depth) return;
+
+        try
+        {
+            // Check exclusions
+            foreach (var excl in excludedPaths)
+            {
+                if (dir.Contains(excl, StringComparison.OrdinalIgnoreCase))
+                {
+                    excludedSkipped++;
+                    return;
+                }
+            }
+
+            // Check sensitive
+            var isSensitive = false;
+            foreach (var pattern in sensitivePatterns)
+            {
+                if (System.Text.RegularExpressions.Regex.IsMatch(dir, pattern, System.Text.RegularExpressions.RegexOptions.IgnoreCase))
+                {
+                    isSensitive = true;
+                    break;
+                }
+            }
+
+            if (isSensitive && (allowedPatternRegex == null || !allowedPatternRegex.IsMatch(dir)))
+            {
+                sensitiveSkipped++;
+                return;
+            }
+
+            // Search files
+            if (type.Contains('f') || type == "all")
+            {
+                foreach (var file in Directory.EnumerateFiles(dir))
+                {
+                    if (results.Count >= maxResults) return;
+                    scanned++;
+
+                    var fileName = Path.GetFileName(file);
+                    if (!showHidden && fileName.StartsWith(".")) continue;
+
+                    // Extension filter
+                    if (extensions.Count > 0)
+                    {
+                        var fileExt = Path.GetExtension(file).TrimStart('.');
+                        if (!extensions.Contains(fileExt)) continue;
+                    }
+
+                    // Name pattern
+                    if (!string.IsNullOrEmpty(name))
+                    {
+                        var pattern = "^" + System.Text.RegularExpressions.Regex.Escape(name)
+                            .Replace("\\*", ".*").Replace("\\?", ".") + "$";
+                        if (!System.Text.RegularExpressions.Regex.IsMatch(fileName, pattern, System.Text.RegularExpressions.RegexOptions.IgnoreCase))
+                            continue;
+                    }
+
+                    // Regex pattern
+                    if (nameRegex != null && !nameRegex.IsMatch(fileName)) continue;
+
+                    try
+                    {
+                        var info = new FileInfo(file);
+
+                        // Size filter
+                        if (minSize.HasValue && info.Length < minSize.Value) continue;
+                        if (maxSize.HasValue && info.Length > maxSize.Value) continue;
+
+                        // Date filter
+                        if (newerThan.HasValue && info.LastWriteTime < newerThan.Value) continue;
+                        if (olderThan.HasValue && info.LastWriteTime > olderThan.Value) continue;
+
+                        // Content filter
+                        if (!string.IsNullOrEmpty(contains))
+                        {
+                            try
+                            {
+                                var content = File.ReadAllText(file);
+                                if (!content.Contains(contains, StringComparison.OrdinalIgnoreCase)) continue;
+                            }
+                            catch { continue; }
+                        }
+
+                        results.Add(new
+                        {
+                            path = file,
+                            name = fileName,
+                            size = info.Length,
+                            sizeHuman = FormatSize(info.Length),
+                            modified = info.LastWriteTime,
+                            created = info.CreationTime,
+                            extension = info.Extension.TrimStart('.'),
+                            type = "file"
+                        });
+                    }
+                    catch { /* skip inaccessible files */ }
+                }
+            }
+
+            // Search directories
+            if (type.Contains('d') || type == "all")
+            {
+                foreach (var subdir in Directory.EnumerateDirectories(dir))
+                {
+                    if (results.Count >= maxResults) return;
+
+                    var dirName = Path.GetFileName(subdir);
+                    if (!showHidden && dirName.StartsWith(".")) continue;
+
+                    if (!string.IsNullOrEmpty(name))
+                    {
+                        var pattern = "^" + System.Text.RegularExpressions.Regex.Escape(name)
+                            .Replace("\\*", ".*").Replace("\\?", ".") + "$";
+                        if (System.Text.RegularExpressions.Regex.IsMatch(dirName, pattern, System.Text.RegularExpressions.RegexOptions.IgnoreCase))
+                        {
+                            results.Add(new
+                            {
+                                path = subdir,
+                                name = dirName,
+                                type = "directory"
+                            });
+                        }
+                    }
+
+                    Search(subdir, currentDepth + 1);
+                }
+            }
+            else
+            {
+                // Recurse into subdirs even if not listing dirs
+                foreach (var subdir in Directory.EnumerateDirectories(dir))
+                {
+                    var dirName = Path.GetFileName(subdir);
+                    if (!showHidden && dirName.StartsWith(".")) continue;
+                    Search(subdir, currentDepth + 1);
+                }
+            }
+        }
+        catch { /* skip inaccessible directories */ }
+    }
+
+    string FormatSize(long bytes)
+    {
+        string[] sizes = { "B", "KB", "MB", "GB", "TB" };
+        var order = 0;
+        double size = bytes;
+        while (size >= 1024 && order < sizes.Length - 1)
+        {
+            order++;
+            size /= 1024;
+        }
+        return $"{size:0.##} {sizes[order]}";
+    }
+
+    Search(path, 0);
+
+    // Sort results
+    var sortedResults = sort.ToLower() switch
+    {
+        "size" => reverse ? results.OrderByDescending(r => ((dynamic)r).size) : results.OrderBy(r => ((dynamic)r).size),
+        "name" => reverse ? results.OrderByDescending(r => ((dynamic)r).name) : results.OrderBy(r => ((dynamic)r).name),
+        "ext" => reverse ? results.OrderByDescending(r => ((dynamic)r).extension ?? "") : results.OrderBy(r => ((dynamic)r).extension ?? ""),
+        _ => reverse ? results.OrderBy(r => ((dynamic)r).modified) : results.OrderByDescending(r => ((dynamic)r).modified)
+    };
+
+    return new
+    {
+        success = true,
+        searchPath = path,
+        count = results.Count,
+        scanned,
+        sensitiveSkipped,
+        excludedSkipped,
+        results = sortedResults.ToList(),
+        hint = sensitiveSkipped > 0 ? $"Use 'allow' parameter to access {sensitiveSkipped} sensitive paths" : null
+    };
+});
+
+server.RegisterTool("served_file_stats", async (args) =>
+{
+    var path = args["path"]?.Value<string>() ?? Directory.GetCurrentDirectory();
+
+    if (path.StartsWith("~"))
+    {
+        path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), path[1..].TrimStart('/'));
+    }
+
+    if (!Directory.Exists(path))
+    {
+        return new { success = false, error = $"Path does not exist: {path}" };
+    }
+
+    var fileCount = 0L;
+    var dirCount = 0L;
+    var totalSize = 0L;
+    var extensionStats = new Dictionary<string, (int count, long size)>();
+
+    void CountFiles(string dir)
+    {
+        try
+        {
+            foreach (var file in Directory.EnumerateFiles(dir))
+            {
+                try
+                {
+                    var info = new FileInfo(file);
+                    fileCount++;
+                    totalSize += info.Length;
+
+                    var ext = info.Extension.TrimStart('.').ToLowerInvariant();
+                    if (string.IsNullOrEmpty(ext)) ext = "(no extension)";
+
+                    if (extensionStats.TryGetValue(ext, out var stat))
+                    {
+                        extensionStats[ext] = (stat.count + 1, stat.size + info.Length);
+                    }
+                    else
+                    {
+                        extensionStats[ext] = (1, info.Length);
+                    }
+                }
+                catch { }
+            }
+
+            foreach (var subdir in Directory.EnumerateDirectories(dir))
+            {
+                dirCount++;
+                CountFiles(subdir);
+            }
+        }
+        catch { }
+    }
+
+    CountFiles(path);
+
+    string FormatSize(long bytes)
+    {
+        string[] sizes = { "B", "KB", "MB", "GB", "TB" };
+        var order = 0;
+        double size = bytes;
+        while (size >= 1024 && order < sizes.Length - 1)
+        {
+            order++;
+            size /= 1024;
+        }
+        return $"{size:0.##} {sizes[order]}";
+    }
+
+    var topExtensions = extensionStats
+        .OrderByDescending(x => x.Value.size)
+        .Take(15)
+        .Select(x => new
+        {
+            extension = x.Key,
+            count = x.Value.count,
+            totalSize = x.Value.size,
+            totalSizeHuman = FormatSize(x.Value.size)
+        })
+        .ToList();
+
+    return new
+    {
+        success = true,
+        path,
+        fileCount,
+        directoryCount = dirCount,
+        totalSize,
+        totalSizeHuman = FormatSize(totalSize),
+        topExtensionsBySize = topExtensions
+    };
+});
+
+server.RegisterTool("served_file_duplicates", async (args) =>
+{
+    var path = args["path"]?.Value<string>() ?? Directory.GetCurrentDirectory();
+    var minSize = args["minSize"]?.Value<long>() ?? 1024; // Default 1KB
+    var maxResults = args["max"]?.Value<int>() ?? 100;
+
+    if (path.StartsWith("~"))
+    {
+        path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), path[1..].TrimStart('/'));
+    }
+
+    if (!Directory.Exists(path))
+    {
+        return new { success = false, error = $"Path does not exist: {path}" };
+    }
+
+    var filesBySize = new Dictionary<long, List<string>>();
+
+    void GatherFiles(string dir)
+    {
+        try
+        {
+            foreach (var file in Directory.EnumerateFiles(dir))
+            {
+                try
+                {
+                    var info = new FileInfo(file);
+                    if (info.Length < minSize) continue;
+
+                    if (!filesBySize.TryGetValue(info.Length, out var list))
+                    {
+                        list = new List<string>();
+                        filesBySize[info.Length] = list;
+                    }
+                    list.Add(file);
+                }
+                catch { }
+            }
+
+            foreach (var subdir in Directory.EnumerateDirectories(dir))
+            {
+                var name = Path.GetFileName(subdir);
+                if (name.StartsWith(".") || name == "node_modules" || name == ".git") continue;
+                GatherFiles(subdir);
+            }
+        }
+        catch { }
+    }
+
+    GatherFiles(path);
+
+    // Find duplicates by hash
+    var duplicateGroups = new List<object>();
+    var potentialDups = filesBySize.Where(x => x.Value.Count > 1);
+
+    foreach (var group in potentialDups)
+    {
+        var hashGroups = new Dictionary<string, List<string>>();
+
+        foreach (var file in group.Value)
+        {
+            try
+            {
+                using var stream = File.OpenRead(file);
+                using var sha = System.Security.Cryptography.SHA256.Create();
+                var hash = Convert.ToHexString(sha.ComputeHash(stream))[..16];
+
+                if (!hashGroups.TryGetValue(hash, out var files))
+                {
+                    files = new List<string>();
+                    hashGroups[hash] = files;
+                }
+                files.Add(file);
+            }
+            catch { }
+        }
+
+        foreach (var hashGroup in hashGroups.Where(x => x.Value.Count > 1))
+        {
+            if (duplicateGroups.Count >= maxResults) break;
+
+            string FormatSize(long bytes)
+            {
+                string[] sizes = { "B", "KB", "MB", "GB", "TB" };
+                var order = 0;
+                double size = bytes;
+                while (size >= 1024 && order < sizes.Length - 1)
+                {
+                    order++;
+                    size /= 1024;
+                }
+                return $"{size:0.##} {sizes[order]}";
+            }
+
+            duplicateGroups.Add(new
+            {
+                hash = hashGroup.Key,
+                size = group.Key,
+                sizeHuman = FormatSize(group.Key),
+                count = hashGroup.Value.Count,
+                wastedSpace = group.Key * (hashGroup.Value.Count - 1),
+                wastedSpaceHuman = FormatSize(group.Key * (hashGroup.Value.Count - 1)),
+                files = hashGroup.Value
+            });
+        }
+    }
+
+    var totalWasted = duplicateGroups.Sum(g => (long)((dynamic)g).wastedSpace);
+
+    string FormatTotalSize(long bytes)
+    {
+        string[] sizes = { "B", "KB", "MB", "GB", "TB" };
+        var order = 0;
+        double size = bytes;
+        while (size >= 1024 && order < sizes.Length - 1)
+        {
+            order++;
+            size /= 1024;
+        }
+        return $"{size:0.##} {sizes[order]}";
+    }
+
+    return new
+    {
+        success = true,
+        searchPath = path,
+        duplicateGroupsFound = duplicateGroups.Count,
+        totalWastedSpace = totalWasted,
+        totalWastedSpaceHuman = FormatTotalSize(totalWasted),
+        duplicates = duplicateGroups.OrderByDescending(g => ((dynamic)g).wastedSpace).ToList()
+    };
+});
+
+server.RegisterTool("served_file_auth_status", async (args) =>
+{
+    var configDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".served");
+    var configPath = Path.Combine(configDir, "tooling-auth.json");
+
+    if (!File.Exists(configPath))
+    {
+        return new
+        {
+            success = true,
+            enabled = true,
+            message = "Tooling auth is enabled with default settings",
+            configPath,
+            allowedPaths = new List<object>(),
+            sensitivePatterns = new[] { ".ssh", ".aws", ".gnupg", "Keychains", ".env", "credentials", "secrets" }
+        };
+    }
+
+    var config = JObject.Parse(await File.ReadAllTextAsync(configPath));
+
+    return new
+    {
+        success = true,
+        enabled = config["Enabled"]?.Value<bool>() ?? true,
+        requireConfirmation = config["RequireConfirmation"]?.Value<bool>() ?? true,
+        auditLogging = config["AuditLogging"]?.Value<bool>() ?? true,
+        configPath,
+        allowedPaths = config["AllowedPaths"] ?? new JArray(),
+        customSensitivePatterns = config["CustomSensitivePatterns"] ?? new JArray()
+    };
+});
+
+server.RegisterTool("served_file_auth_allow", async (args) =>
+{
+    var pattern = args["pattern"]?.Value<string>() ?? throw new ArgumentException("pattern required");
+    var reason = args["reason"]?.Value<string>() ?? "MCP tool access";
+    var days = args["days"]?.Value<int>() ?? 1;
+
+    var configDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".served");
+    var configPath = Path.Combine(configDir, "tooling-auth.json");
+
+    if (!Directory.Exists(configDir))
+        Directory.CreateDirectory(configDir);
+
+    JObject config;
+    if (File.Exists(configPath))
+    {
+        config = JObject.Parse(await File.ReadAllTextAsync(configPath));
+    }
+    else
+    {
+        config = new JObject
+        {
+            ["Enabled"] = true,
+            ["RequireConfirmation"] = true,
+            ["AuditLogging"] = true,
+            ["DefaultExpirationDays"] = 0,
+            ["AllowedPaths"] = new JArray(),
+            ["CustomSensitivePatterns"] = new JArray(),
+            ["ExcludedPaths"] = new JArray()
+        };
+    }
+
+    var allowedPaths = config["AllowedPaths"] as JArray ?? new JArray();
+
+    // Remove existing entry for same pattern
+    var existing = allowedPaths.FirstOrDefault(x => x["Pattern"]?.Value<string>() == pattern);
+    if (existing != null)
+        allowedPaths.Remove(existing);
+
+    var entry = new JObject
+    {
+        ["Pattern"] = pattern,
+        ["Reason"] = reason,
+        ["AllowedAt"] = DateTime.UtcNow,
+        ["ExpiresAt"] = days > 0 ? DateTime.UtcNow.AddDays(days) : null,
+        ["AllowedBy"] = Environment.UserName
+    };
+
+    allowedPaths.Add(entry);
+    config["AllowedPaths"] = allowedPaths;
+
+    await File.WriteAllTextAsync(configPath, config.ToString());
+
+    // Log to audit
+    var auditPath = Path.Combine(configDir, "tooling-audit.log");
+    var auditEntry = $"[{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}] ALLOW | {pattern} | {reason} | User: {Environment.UserName}\n";
+    await File.AppendAllTextAsync(auditPath, auditEntry);
+
+    return new
+    {
+        success = true,
+        message = $"Pattern '{pattern}' allowed for {days} day(s)",
+        pattern,
+        reason,
+        expiresAt = days > 0 ? DateTime.UtcNow.AddDays(days).ToString("yyyy-MM-dd HH:mm:ss") : "Never"
+    };
+});
+
+server.RegisterTool("served_file_tree", async (args) =>
+{
+    var path = args["path"]?.Value<string>() ?? Directory.GetCurrentDirectory();
+    var depth = args["depth"]?.Value<int>() ?? 3;
+    var showHidden = args["hidden"]?.Value<bool>() ?? false;
+    var showFiles = args["files"]?.Value<bool>() ?? true;
+
+    if (path.StartsWith("~"))
+    {
+        path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), path[1..].TrimStart('/'));
+    }
+
+    if (!Directory.Exists(path))
+    {
+        return new { success = false, error = $"Path does not exist: {path}" };
+    }
+
+    var tree = new StringBuilder();
+    tree.AppendLine(Path.GetFileName(path) + "/");
+
+    void BuildTree(string dir, string prefix, int currentDepth)
+    {
+        if (currentDepth > depth) return;
+
+        try
+        {
+            var entries = new List<(string path, bool isDir)>();
+
+            foreach (var subdir in Directory.EnumerateDirectories(dir))
+            {
+                var name = Path.GetFileName(subdir);
+                if (!showHidden && name.StartsWith(".")) continue;
+                if (name == "node_modules" || name == ".git") continue;
+                entries.Add((subdir, true));
+            }
+
+            if (showFiles)
+            {
+                foreach (var file in Directory.EnumerateFiles(dir))
+                {
+                    var name = Path.GetFileName(file);
+                    if (!showHidden && name.StartsWith(".")) continue;
+                    entries.Add((file, false));
+                }
+            }
+
+            entries = entries.OrderBy(e => !e.isDir).ThenBy(e => Path.GetFileName(e.path)).ToList();
+
+            for (var i = 0; i < entries.Count; i++)
+            {
+                var (entryPath, isDir) = entries[i];
+                var isLast = i == entries.Count - 1;
+                var name = Path.GetFileName(entryPath);
+                var connector = isLast ? "└── " : "├── ";
+                var extension = isDir ? "/" : "";
+
+                tree.AppendLine($"{prefix}{connector}{name}{extension}");
+
+                if (isDir)
+                {
+                    var newPrefix = prefix + (isLast ? "    " : "│   ");
+                    BuildTree(entryPath, newPrefix, currentDepth + 1);
+                }
+            }
+        }
+        catch { }
+    }
+
+    BuildTree(path, "", 1);
+
+    return new
+    {
+        success = true,
+        path,
+        depth,
+        tree = tree.ToString()
+    };
+});
+
+// ----------------------------------------------------------------------
+// Social Monitoring Tools
+// ----------------------------------------------------------------------
+
+server.RegisterTool("GetSocialMentions", async (args) =>
+{
+    var status = args["status"]?.Value<string>();
+    var platform = args["platform"]?.Value<string>();
+    var limit = args["limit"]?.Value<int>() ?? 20;
+
+    var queryParams = new List<string> { $"limit={limit}" };
+    if (!string.IsNullOrEmpty(status))
+        queryParams.Add($"status={status}");
+    if (!string.IsNullOrEmpty(platform))
+        queryParams.Add($"platform={platform}");
+
+    var response = await server.Http.GetAsync($"/api/social/monitoring/mentions?{string.Join("&", queryParams)}");
+    response.EnsureSuccessStatusCode();
+
+    var content = await response.Content.ReadAsStringAsync();
+    var mentions = JArray.Parse(content);
+
+    var sb = new StringBuilder();
+    sb.AppendLine($"📱 Social Mentions ({mentions.Count} found)");
+    sb.AppendLine(new string('─', 50));
+
+    foreach (var mention in mentions)
+    {
+        var mentionPlatform = mention["platform"]?.Value<string>() ?? "";
+        var icon = mentionPlatform switch
+        {
+            "twitter" => "🐦",
+            "linkedin" => "💼",
+            "youtube" => "▶️",
+            "reddit" => "🔴",
+            _ => "📢"
+        };
+
+        sb.AppendLine($"{icon} [{mentionPlatform.ToUpper()}] @{mention["authorHandle"]}");
+        sb.AppendLine($"   Status: {mention["responseStatus"]} | Intent: {mention["detectedIntent"]}");
+        sb.AppendLine($"   Content: {TruncateText(mention["content"]?.Value<string>(), 100)}");
+        if (mention["draftResponse"] != null && !string.IsNullOrEmpty(mention["draftResponse"]?.Value<string>()))
+        {
+            sb.AppendLine($"   Draft: {TruncateText(mention["draftResponse"]?.Value<string>(), 80)}");
+        }
+        sb.AppendLine($"   ID: {mention["id"]} | Posted: {mention["postedAt"]}");
+        sb.AppendLine();
+    }
+
+    return sb.ToString();
+
+    static string TruncateText(string? text, int maxLength)
+    {
+        if (string.IsNullOrEmpty(text)) return "";
+        return text.Length <= maxLength ? text : text[..(maxLength - 3)] + "...";
+    }
+});
+
+server.RegisterTool("GetSocialMentionDetails", async (args) =>
+{
+    var mentionId = args["mentionId"]?.Value<long>() ?? throw new ArgumentException("mentionId required");
+
+    var response = await server.Http.GetAsync($"/api/social/monitoring/mentions/{mentionId}");
+    response.EnsureSuccessStatusCode();
+
+    var content = await response.Content.ReadAsStringAsync();
+    return JObject.Parse(content);
+});
+
+server.RegisterTool("RespondToMention", async (args) =>
+{
+    var mentionId = args["mentionId"]?.Value<long>() ?? throw new ArgumentException("mentionId required");
+    var responseText = args["response"]?.Value<string>() ?? throw new ArgumentException("response required");
+
+    var payload = new JObject { ["response"] = responseText };
+    var httpContent = new StringContent(payload.ToString(), Encoding.UTF8, "application/json");
+
+    var response = await server.Http.PostAsync($"/api/social/monitoring/mentions/{mentionId}/respond", httpContent);
+    response.EnsureSuccessStatusCode();
+
+    return new { success = true, message = $"Response sent to mention {mentionId}" };
+});
+
+server.RegisterTool("AcceptMentionDraft", async (args) =>
+{
+    var mentionId = args["mentionId"]?.Value<long>() ?? throw new ArgumentException("mentionId required");
+
+    var response = await server.Http.PostAsync($"/api/social/monitoring/mentions/{mentionId}/accept", null);
+    response.EnsureSuccessStatusCode();
+
+    return new { success = true, message = $"Draft response accepted and sent for mention {mentionId}" };
+});
+
+server.RegisterTool("SkipMention", async (args) =>
+{
+    var mentionId = args["mentionId"]?.Value<long>() ?? throw new ArgumentException("mentionId required");
+
+    var response = await server.Http.PostAsync($"/api/social/monitoring/mentions/{mentionId}/skip", null);
+    response.EnsureSuccessStatusCode();
+
+    return new { success = true, message = $"Mention {mentionId} marked as skipped" };
+});
+
+server.RegisterTool("GetSocialKeywords", async (args) =>
+{
+    var response = await server.Http.GetAsync("/api/social/monitoring/keywords");
+    response.EnsureSuccessStatusCode();
+
+    var content = await response.Content.ReadAsStringAsync();
+    return JObject.Parse(content);
+});
+
+server.RegisterTool("GetSocialStats", async (args) =>
+{
+    var days = args["days"]?.Value<int>() ?? 30;
+
+    var response = await server.Http.GetAsync($"/api/social/monitoring/stats?days={days}");
+    response.EnsureSuccessStatusCode();
+
+    var content = await response.Content.ReadAsStringAsync();
+    var stats = JObject.Parse(content);
+
+    var sb = new StringBuilder();
+    sb.AppendLine("📊 Social Monitoring Stats");
+    sb.AppendLine(new string('─', 40));
+    sb.AppendLine($"Period: Last {days} days");
+    sb.AppendLine();
+    sb.AppendLine($"Total Mentions: {stats["totalMentions"]}");
+    sb.AppendLine($"Responded: {stats["respondedCount"]}");
+    sb.AppendLine($"Pending: {stats["pendingCount"]}");
+    sb.AppendLine($"Skipped: {stats["skippedCount"]}");
+    sb.AppendLine();
+    sb.AppendLine("By Platform:");
+
+    if (stats["byPlatform"] is JObject platforms)
+    {
+        foreach (var prop in platforms.Properties())
+        {
+            sb.AppendLine($"  {prop.Name}: {prop.Value}");
+        }
+    }
+
+    return sb.ToString();
+});
+
+// ----------------------------------------------------------------------
+// Serva Queue Tools
+// ----------------------------------------------------------------------
+
+server.RegisterTool("GetServaQueue", async (args) =>
+{
+    var response = await server.Http.GetAsync("/api/serva/queue");
+    response.EnsureSuccessStatusCode();
+
+    var content = await response.Content.ReadAsStringAsync();
+    var queue = JArray.Parse(content);
+
+    var sb = new StringBuilder();
+    sb.AppendLine($"🤖 Serva Queue ({queue.Count} pending items)");
+    sb.AppendLine(new string('─', 50));
+
+    foreach (var item in queue)
+    {
+        sb.AppendLine($"[{item["source"]}] {item["type"]}");
+        sb.AppendLine($"  Content: {item["content"]?.Value<string>()?[..Math.Min(100, item["content"]?.Value<string>()?.Length ?? 0)]}...");
+        sb.AppendLine($"  ID: {item["id"]} | Created: {item["createdAt"]}");
+        sb.AppendLine();
+    }
+
+    return sb.ToString();
+});
+
+server.RegisterTool("GetServaSettings", async (args) =>
+{
+    var response = await server.Http.GetAsync("/api/serva/settings");
+    response.EnsureSuccessStatusCode();
+
+    var content = await response.Content.ReadAsStringAsync();
+    return JObject.Parse(content);
+});
+
+server.RegisterTool("SetServaAutomationLevel", async (args) =>
+{
+    var level = args["level"]?.Value<int>() ?? throw new ArgumentException("level required (1-4)");
+    if (level < 1 || level > 4)
+        throw new ArgumentException("Level must be between 1 and 4");
+
+    var httpContent = new StringContent(level.ToString(), Encoding.UTF8, "application/json");
+    var response = await server.Http.PutAsync("/api/serva/automation-level", httpContent);
+    response.EnsureSuccessStatusCode();
+
+    var descriptions = new Dictionary<int, string>
+    {
+        { 1, "Manual - All responses require approval" },
+        { 2, "Assisted - Draft responses generated, approval required" },
+        { 3, "Semi-Auto - Low-risk responses sent automatically" },
+        { 4, "Full Auto - All responses handled automatically" }
+    };
+
+    return new { success = true, level, description = descriptions[level] };
+});
+
+// ----------------------------------------------------------------------
+// Tool Usage Analytics
+// ----------------------------------------------------------------------
+
+server.RegisterTool("GetToolUsageStats", async (args) =>
+{
+    var days = args["days"]?.Value<int>() ?? 7;
+
+    var response = await server.Http.GetAsync($"/api/analytics/tools/usage?days={days}");
+    response.EnsureSuccessStatusCode();
+
+    var content = await response.Content.ReadAsStringAsync();
+    var stats = JObject.Parse(content);
+
+    var sb = new StringBuilder();
+    sb.AppendLine("📈 Tool Usage Statistics");
+    sb.AppendLine(new string('─', 40));
+    sb.AppendLine($"Period: Last {days} days");
+    sb.AppendLine();
+    sb.AppendLine($"Total Events: {stats["totalEvents"]}");
+    sb.AppendLine($"CLI Commands: {stats["cliCommands"]}");
+    sb.AppendLine($"MCP Tool Calls: {stats["mcpToolCalls"]}");
+    sb.AppendLine($"Agent Sessions: {stats["agentSessions"]}");
+    sb.AppendLine($"Total Cost: {stats["totalCost"]:C}");
+    sb.AppendLine();
+
+    if (stats["successRate"] != null)
+    {
+        sb.AppendLine($"Success Rate: {stats["successRate"]:P1}");
+    }
+    if (stats["avgDurationMs"] != null)
+    {
+        sb.AppendLine($"Avg Duration: {stats["avgDurationMs"]}ms");
+    }
+
+    return sb.ToString();
+});
+
+server.RegisterTool("GetTopCliCommands", async (args) =>
+{
+    var days = args["days"]?.Value<int>() ?? 7;
+    var limit = args["limit"]?.Value<int>() ?? 10;
+
+    var response = await server.Http.GetAsync($"/api/analytics/tools/cli/commands?days={days}&limit={limit}");
+    response.EnsureSuccessStatusCode();
+
+    var content = await response.Content.ReadAsStringAsync();
+    var commands = JArray.Parse(content);
+
+    var sb = new StringBuilder();
+    sb.AppendLine("🔧 Top CLI Commands");
+    sb.AppendLine(new string('─', 40));
+
+    var rank = 1;
+    foreach (var cmd in commands)
+    {
+        sb.AppendLine($"{rank}. {cmd["command"]} ({cmd["count"]} calls)");
+        if (cmd["avgDurationMs"] != null)
+        {
+            sb.AppendLine($"   Avg: {cmd["avgDurationMs"]}ms | Success: {cmd["successRate"]:P0}");
+        }
+        rank++;
+    }
+
+    return sb.ToString();
+});
+
+server.RegisterTool("GetTopMcpTools", async (args) =>
+{
+    var days = args["days"]?.Value<int>() ?? 7;
+    var limit = args["limit"]?.Value<int>() ?? 10;
+
+    var response = await server.Http.GetAsync($"/api/analytics/tools/mcp/tools?days={days}&limit={limit}");
+    response.EnsureSuccessStatusCode();
+
+    var content = await response.Content.ReadAsStringAsync();
+    var tools = JArray.Parse(content);
+
+    var sb = new StringBuilder();
+    sb.AppendLine("🛠️ Top MCP Tools");
+    sb.AppendLine(new string('─', 40));
+
+    var rank = 1;
+    foreach (var tool in tools)
+    {
+        sb.AppendLine($"{rank}. {tool["toolName"]} ({tool["count"]} calls)");
+        if (tool["avgDurationMs"] != null)
+        {
+            sb.AppendLine($"   Avg: {tool["avgDurationMs"]}ms | Success: {tool["successRate"]:P0}");
+        }
+        rank++;
+    }
+
+    return sb.ToString();
+});
+
+server.RegisterTool("GetAgentSessions", async (args) =>
+{
+    var days = args["days"]?.Value<int>() ?? 7;
+    var limit = args["limit"]?.Value<int>() ?? 20;
+
+    var response = await server.Http.GetAsync($"/api/analytics/tools/agents/sessions?days={days}&limit={limit}");
+    response.EnsureSuccessStatusCode();
+
+    var content = await response.Content.ReadAsStringAsync();
+    var sessions = JArray.Parse(content);
+
+    var sb = new StringBuilder();
+    sb.AppendLine("🤖 Agent Sessions");
+    sb.AppendLine(new string('─', 40));
+
+    foreach (var session in sessions)
+    {
+        sb.AppendLine($"Session: {session["sessionId"]}");
+        sb.AppendLine($"  Agent: {session["agentId"]} | Turns: {session["conversationTurns"]}");
+        sb.AppendLine($"  Duration: {session["totalDurationMs"]}ms | Tools: {session["toolCallCount"]}");
+        sb.AppendLine($"  Started: {session["startedAt"]}");
+        sb.AppendLine();
+    }
+
+    return sb.ToString();
+});
+
+// ----------------------------------------------------------------------
+// Tag Detection Tools
+// ----------------------------------------------------------------------
+
+server.RegisterTool("ScanForTags", async (args) =>
+{
+    var content = args["content"]?.Value<string>() ?? throw new ArgumentException("content required");
+
+    var payload = new JObject { ["content"] = content };
+    var httpContent = new StringContent(payload.ToString(), Encoding.UTF8, "application/json");
+
+    var response = await server.Http.PostAsync("/api/audit/tags/scan", httpContent);
+    response.EnsureSuccessStatusCode();
+
+    var result = JObject.Parse(await response.Content.ReadAsStringAsync());
+
+    var sb = new StringBuilder();
+    sb.AppendLine("🏷️ Tag Detection Results");
+    sb.AppendLine(new string('─', 40));
+
+    if (result["actionTags"] is JArray actionTags && actionTags.Count > 0)
+    {
+        sb.AppendLine($"Action Tags: {string.Join(", ", actionTags)}");
+    }
+    if (result["statusTags"] is JArray statusTags && statusTags.Count > 0)
+    {
+        sb.AppendLine($"Status Tags: {string.Join(", ", statusTags)}");
+    }
+    if (result["domainTags"] is JArray domainTags && domainTags.Count > 0)
+    {
+        sb.AppendLine($"Domain Tags: {string.Join(", ", domainTags)}");
+    }
+    if (result["processingTags"] is JArray processingTags && processingTags.Count > 0)
+    {
+        sb.AppendLine($"Processing Tags: {string.Join(", ", processingTags)}");
+    }
+    if (result["mentions"] is JArray mentions && mentions.Count > 0)
+    {
+        sb.AppendLine($"Mentions: {string.Join(", ", mentions.Select(m => m["handle"]))}");
+    }
+
+    return sb.ToString();
+});
+
+server.RegisterTool("GetPendingTagDetections", async (args) =>
+{
+    var response = await server.Http.GetAsync("/api/audit/tags/pending");
+    response.EnsureSuccessStatusCode();
+
+    var content = await response.Content.ReadAsStringAsync();
+    var detections = JArray.Parse(content);
+
+    var sb = new StringBuilder();
+    sb.AppendLine($"🏷️ Pending Tag Detections ({detections.Count})");
+    sb.AppendLine(new string('─', 40));
+
+    foreach (var det in detections)
+    {
+        sb.AppendLine($"[{det["source"]}] {det["primaryTag"]}");
+        sb.AppendLine($"  Tags: {det["tags"]}");
+        sb.AppendLine($"  ID: {det["id"]} | Created: {det["createdDate"]}");
+        sb.AppendLine();
+    }
+
+    return sb.ToString();
+});
+
+// ----------------------------------------------------------------------
+// Databricks Export Tools
+// ----------------------------------------------------------------------
+
+server.RegisterTool("GetDatabricksExportStatus", async (args) =>
+{
+    var response = await server.Http.GetAsync("/api/analytics/databricks/status");
+    response.EnsureSuccessStatusCode();
+
+    var content = await response.Content.ReadAsStringAsync();
+    var status = JObject.Parse(content);
+
+    var sb = new StringBuilder();
+    sb.AppendLine("📊 Databricks Export Status");
+    sb.AppendLine(new string('─', 40));
+    sb.AppendLine($"Pending Tool Usage: {status["pendingToolUsageEvents"]}");
+    sb.AppendLine($"Pending Tag Detections: {status["pendingTagDetections"]}");
+    sb.AppendLine($"Pending Social Mentions: {status["pendingSocialMentions"]}");
+    sb.AppendLine();
+    sb.AppendLine($"Last Tool Usage Export: {status["lastToolUsageExport"] ?? "Never"}");
+    sb.AppendLine($"Last Tag Detection Export: {status["lastTagDetectionExport"] ?? "Never"}");
+    sb.AppendLine($"Last Social Mention Export: {status["lastSocialMentionExport"] ?? "Never"}");
+    sb.AppendLine();
+    sb.AppendLine($"Total Exported Records: {status["totalExportedRecords"]}");
+
+    return sb.ToString();
+});
+
+server.RegisterTool("TriggerDatabricksExport", async (args) =>
+{
+    var type = args["type"]?.Value<string>() ?? "all";
+
+    var endpoint = type.ToLower() switch
+    {
+        "tool-usage" => "/api/analytics/databricks/export/tool-usage",
+        "tag-detections" => "/api/analytics/databricks/export/tag-detections",
+        "social-mentions" => "/api/analytics/databricks/export/social-mentions",
+        _ => "/api/analytics/databricks/export/all"
+    };
+
+    var response = await server.Http.PostAsync(endpoint, null);
+    response.EnsureSuccessStatusCode();
+
+    var content = await response.Content.ReadAsStringAsync();
+    var result = JObject.Parse(content);
+
+    var sb = new StringBuilder();
+    sb.AppendLine("✅ Databricks Export Triggered");
+    sb.AppendLine(new string('─', 40));
+
+    if (type == "all")
+    {
+        sb.AppendLine($"Total Records: {result["totalRecordsExported"]}");
+        sb.AppendLine($"Total Files: {result["totalFilesCreated"]}");
+        sb.AppendLine($"All Successful: {result["allSuccessful"]}");
+    }
+    else
+    {
+        sb.AppendLine($"Records Exported: {result["recordsExported"]}");
+        sb.AppendLine($"Files Created: {result["filesCreated"]}");
+        sb.AppendLine($"Success: {result["success"]}");
+    }
+
+    return sb.ToString();
+});
+
+server.RegisterTool("GetDatabricksSchema", async (args) =>
+{
+    var catalog = args["catalog"]?.Value<string>() ?? "served_analytics";
+
+    var response = await server.Http.GetAsync($"/api/analytics/databricks/schema?catalog={catalog}");
+    response.EnsureSuccessStatusCode();
+
+    var content = await response.Content.ReadAsStringAsync();
+    var result = JObject.Parse(content);
+
+    return result["schema"]?.Value<string>() ?? "No schema available";
+});
+
+// ----------------------------------------------------------------------
+// Processing Tier & Billing Tools
+// ----------------------------------------------------------------------
+
+server.RegisterTool("GetProcessingTiers", async (args) =>
+{
+    var response = await server.Http.GetAsync("/api/finance/processing/tiers");
+    response.EnsureSuccessStatusCode();
+
+    var content = await response.Content.ReadAsStringAsync();
+    var tiers = JArray.Parse(content);
+
+    var sb = new StringBuilder();
+    sb.AppendLine("💰 Processing Tiers");
+    sb.AppendLine(new string('─', 40));
+
+    foreach (var tier in tiers)
+    {
+        sb.AppendLine($"📦 {tier["name"]} ({tier["id"]})");
+        sb.AppendLine($"   {tier["description"]}");
+        sb.AppendLine($"   Processing: {tier["processingSpeed"]}");
+        sb.AppendLine();
+    }
+
+    return sb.ToString();
+});
+
+server.RegisterTool("GetSubscriptionPlans", async (args) =>
+{
+    var response = await server.Http.GetAsync("/api/finance/processing/plans");
+    response.EnsureSuccessStatusCode();
+
+    var content = await response.Content.ReadAsStringAsync();
+    var plans = JArray.Parse(content);
+
+    var sb = new StringBuilder();
+    sb.AppendLine("📋 Subscription Plans");
+    sb.AppendLine(new string('─', 40));
+
+    foreach (var plan in plans)
+    {
+        sb.AppendLine($"🎯 {plan["name"]} ({plan["id"]})");
+        sb.AppendLine($"   Monthly: {plan["priceMonthly"]} DKK");
+        sb.AppendLine($"   Yearly: {plan["priceYearly"]} DKK (save {plan["yearlyDiscount"]}%)");
+        sb.AppendLine($"   Scheduled Quota: {plan["scheduledQuota"]}");
+        sb.AppendLine($"   Instant Quota: {plan["instantQuota"]}");
+        sb.AppendLine($"   Social Quota: {plan["socialResponseQuota"]}");
+        sb.AppendLine();
+    }
+
+    return sb.ToString();
+});
+
+server.RegisterTool("GetCurrentSubscription", async (args) =>
+{
+    var response = await server.Http.GetAsync("/api/finance/processing/subscription");
+
+    if (!response.IsSuccessStatusCode)
+    {
+        return "No active subscription found";
+    }
+
+    var content = await response.Content.ReadAsStringAsync();
+    var sub = JObject.Parse(content);
+
+    var sb = new StringBuilder();
+    sb.AppendLine("🔐 Current Subscription");
+    sb.AppendLine(new string('─', 40));
+    sb.AppendLine($"Plan: {sub["planId"]}");
+    sb.AppendLine($"Status: {sub["status"]}");
+    sb.AppendLine($"Period: {sub["currentPeriodStart"]} - {sub["currentPeriodEnd"]}");
+    sb.AppendLine();
+    sb.AppendLine("Usage:");
+    sb.AppendLine($"  Scheduled: {sub["scheduledUsed"]}/{sub["scheduledQuota"]}");
+    sb.AppendLine($"  Instant: {sub["instantUsed"]}/{sub["instantQuota"]}");
+    sb.AppendLine($"  Social: {sub["socialUsed"]}/{sub["socialQuota"]}");
+
+    return sb.ToString();
+});
+
+server.RegisterTool("CheckQuota", async (args) =>
+{
+    var tier = args["tier"]?.Value<string>() ?? "scheduled";
+
+    var response = await server.Http.GetAsync($"/api/finance/processing/quota/{tier}");
+    response.EnsureSuccessStatusCode();
+
+    var content = await response.Content.ReadAsStringAsync();
+    var result = JObject.Parse(content);
+
+    var sb = new StringBuilder();
+    sb.AppendLine($"📊 Quota Check: {tier}");
+    sb.AppendLine(new string('─', 40));
+    sb.AppendLine($"Allowed: {result["allowed"]}");
+    sb.AppendLine($"Used: {result["used"]} / {result["quota"]}");
+    sb.AppendLine($"Remaining: {result["remaining"]}");
+
+    if (result["allowed"]?.Value<bool>() == false)
+    {
+        sb.AppendLine();
+        sb.AppendLine($"⚠️ Reason: {result["reason"]}");
+    }
+
+    return sb.ToString();
+});
+
+server.RegisterTool("GetBillingSummary", async (args) =>
+{
+    var response = await server.Http.GetAsync("/api/finance/processing/billing/summary");
+    response.EnsureSuccessStatusCode();
+
+    var content = await response.Content.ReadAsStringAsync();
+    var summary = JObject.Parse(content);
+
+    var sb = new StringBuilder();
+    sb.AppendLine("💳 Billing Summary");
+    sb.AppendLine(new string('─', 40));
+    sb.AppendLine($"Period: {summary["periodStart"]} - {summary["periodEnd"]}");
+    sb.AppendLine();
+    sb.AppendLine($"Subscription: {summary["subscriptionCost"]} DKK");
+    sb.AppendLine($"Usage Overage: {summary["overageCost"]} DKK");
+    sb.AppendLine($"Total: {summary["totalCost"]} DKK");
+
+    if (summary["lineItems"] is JArray items && items.Count > 0)
+    {
+        sb.AppendLine();
+        sb.AppendLine("Line Items:");
+        foreach (var item in items)
+        {
+            sb.AppendLine($"  {item["description"]}: {item["amount"]} DKK");
+        }
+    }
+
+    return sb.ToString();
+});
+
+// ═══════════════════════════════════════════════════════════════════════════════════
+// CLOUDFLARE INFRASTRUCTURE MANAGEMENT
+// DNS, Load Balancing, Tunnels, and AI-Powered Routing
+// ═══════════════════════════════════════════════════════════════════════════════════
+
+// Cloudflare API client setup (uses ~/.served/config.json)
+HttpClient CreateCloudflareClient()
+{
+    var configPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".served", "config.json");
+    if (!File.Exists(configPath))
+        throw new Exception("Served config not found. Run 'served cloudflare setup' first.");
+
+    var configJson = File.ReadAllText(configPath);
+    var config = JObject.Parse(configJson);
+    var cfConfig = config["Cloudflare"] as JObject;
+
+    if (cfConfig == null || string.IsNullOrEmpty(cfConfig["ApiToken"]?.ToString()))
+        throw new Exception("Cloudflare not configured. Run 'served cloudflare setup' first.");
+
+    var client = new HttpClient { BaseAddress = new Uri("https://api.cloudflare.com/client/v4/") };
+    client.DefaultRequestHeaders.Add("Authorization", $"Bearer {cfConfig["ApiToken"]}");
+    return client;
+}
+
+server.RegisterTool("CloudflareGetZones", async (args) =>
+{
+    using var cfClient = CreateCloudflareClient();
+    var response = await cfClient.GetAsync("zones?per_page=50");
+    response.EnsureSuccessStatusCode();
+
+    var content = await response.Content.ReadAsStringAsync();
+    var result = JObject.Parse(content);
+    var zones = result["result"] as JArray ?? new JArray();
+
+    var sb = new StringBuilder();
+    sb.AppendLine("☁️ Cloudflare DNS Zones");
+    sb.AppendLine(new string('═', 50));
+
+    if (zones.Count == 0)
+    {
+        sb.AppendLine("No zones found.");
+        return sb.ToString();
+    }
+
+    foreach (var zone in zones)
+    {
+        var status = zone["status"]?.ToString() ?? "unknown";
+        var icon = status == "active" ? "✅" : "⏳";
+        var paused = zone["paused"]?.Value<bool>() == true ? " (paused)" : "";
+
+        sb.AppendLine($"{icon} {zone["name"]}{paused}");
+        sb.AppendLine($"   ID: {zone["id"]}");
+        sb.AppendLine($"   Status: {status}");
+        sb.AppendLine($"   Plan: {zone["plan"]?["name"]}");
+        sb.AppendLine($"   Name Servers: {string.Join(", ", (zone["name_servers"] as JArray ?? new JArray()).Select(n => n.ToString()))}");
+        sb.AppendLine();
+    }
+
+    return sb.ToString();
+});
+
+server.RegisterTool("CloudflareGetDnsRecords", async (args) =>
+{
+    var zoneId = args["zoneId"]?.Value<string>();
+    var zoneName = args["zoneName"]?.Value<string>();
+    var recordType = args["type"]?.Value<string>(); // Optional filter
+
+    if (string.IsNullOrEmpty(zoneId) && string.IsNullOrEmpty(zoneName))
+        throw new Exception("Either zoneId or zoneName is required");
+
+    using var cfClient = CreateCloudflareClient();
+
+    // If zoneName provided, look up zone ID
+    if (string.IsNullOrEmpty(zoneId))
+    {
+        var zonesResponse = await cfClient.GetAsync($"zones?name={zoneName}");
+        zonesResponse.EnsureSuccessStatusCode();
+        var zonesResult = JObject.Parse(await zonesResponse.Content.ReadAsStringAsync());
+        var zones = zonesResult["result"] as JArray;
+        if (zones == null || zones.Count == 0)
+            throw new Exception($"Zone '{zoneName}' not found");
+        zoneId = zones[0]["id"]?.ToString();
+    }
+
+    var url = $"zones/{zoneId}/dns_records?per_page=100";
+    if (!string.IsNullOrEmpty(recordType))
+        url += $"&type={recordType}";
+
+    var response = await cfClient.GetAsync(url);
+    response.EnsureSuccessStatusCode();
+
+    var content = await response.Content.ReadAsStringAsync();
+    var result = JObject.Parse(content);
+    var records = result["result"] as JArray ?? new JArray();
+
+    var sb = new StringBuilder();
+    sb.AppendLine("📋 DNS Records");
+    sb.AppendLine(new string('═', 60));
+
+    var grouped = records.GroupBy(r => r["type"]?.ToString() ?? "UNKNOWN");
+    foreach (var group in grouped.OrderBy(g => g.Key))
+    {
+        sb.AppendLine();
+        sb.AppendLine($"## {group.Key} Records ({group.Count()})");
+        sb.AppendLine(new string('─', 40));
+
+        foreach (var record in group)
+        {
+            var proxied = record["proxied"]?.Value<bool>() == true ? " 🔶" : " ⚪";
+            var ttl = record["ttl"]?.Value<int>() == 1 ? "Auto" : $"{record["ttl"]}s";
+
+            sb.AppendLine($"  {record["name"]}{proxied}");
+            sb.AppendLine($"    → {record["content"]}");
+            sb.AppendLine($"    TTL: {ttl} | ID: {record["id"]}");
+        }
+    }
+
+    return sb.ToString();
+});
+
+server.RegisterTool("CloudflareCreateDnsRecord", async (args) =>
+{
+    var zoneId = args["zoneId"]?.Value<string>();
+    var zoneName = args["zoneName"]?.Value<string>();
+    var name = args["name"]?.Value<string>() ?? throw new Exception("name is required");
+    var type = args["type"]?.Value<string>() ?? "A";
+    var content = args["content"]?.Value<string>() ?? throw new Exception("content is required");
+    var ttl = args["ttl"]?.Value<int>() ?? 1; // 1 = Auto
+    var proxied = args["proxied"]?.Value<bool>() ?? true;
+
+    if (string.IsNullOrEmpty(zoneId) && string.IsNullOrEmpty(zoneName))
+        throw new Exception("Either zoneId or zoneName is required");
+
+    using var cfClient = CreateCloudflareClient();
+
+    // If zoneName provided, look up zone ID
+    if (string.IsNullOrEmpty(zoneId))
+    {
+        var zonesResponse = await cfClient.GetAsync($"zones?name={zoneName}");
+        zonesResponse.EnsureSuccessStatusCode();
+        var zonesResult = JObject.Parse(await zonesResponse.Content.ReadAsStringAsync());
+        var zones = zonesResult["result"] as JArray;
+        if (zones == null || zones.Count == 0)
+            throw new Exception($"Zone '{zoneName}' not found");
+        zoneId = zones[0]["id"]?.ToString();
+    }
+
+    var record = new JObject
+    {
+        ["type"] = type.ToUpper(),
+        ["name"] = name,
+        ["content"] = content,
+        ["ttl"] = ttl,
+        ["proxied"] = proxied
+    };
+
+    var requestContent = new StringContent(record.ToString(), Encoding.UTF8, "application/json");
+    var response = await cfClient.PostAsync($"zones/{zoneId}/dns_records", requestContent);
+    var responseContent = await response.Content.ReadAsStringAsync();
+    var result = JObject.Parse(responseContent);
+
+    if (result["success"]?.Value<bool>() != true)
+    {
+        var errors = result["errors"] as JArray;
+        var errorMsg = errors?.FirstOrDefault()?["message"]?.ToString() ?? "Unknown error";
+        throw new Exception($"Failed to create DNS record: {errorMsg}");
+    }
+
+    var created = result["result"];
+    return $"✅ DNS record created:\n   {created?["name"]} ({created?["type"]}) → {created?["content"]}\n   ID: {created?["id"]}";
+});
+
+server.RegisterTool("CloudflareDeleteDnsRecord", async (args) =>
+{
+    var zoneId = args["zoneId"]?.Value<string>() ?? throw new Exception("zoneId is required");
+    var recordId = args["recordId"]?.Value<string>() ?? throw new Exception("recordId is required");
+
+    using var cfClient = CreateCloudflareClient();
+    var response = await cfClient.DeleteAsync($"zones/{zoneId}/dns_records/{recordId}");
+    var responseContent = await response.Content.ReadAsStringAsync();
+    var result = JObject.Parse(responseContent);
+
+    if (result["success"]?.Value<bool>() != true)
+    {
+        var errors = result["errors"] as JArray;
+        var errorMsg = errors?.FirstOrDefault()?["message"]?.ToString() ?? "Unknown error";
+        throw new Exception($"Failed to delete DNS record: {errorMsg}");
+    }
+
+    return $"✅ DNS record deleted: {recordId}";
+});
+
+server.RegisterTool("CloudflareGetLoadBalancers", async (args) =>
+{
+    var zoneId = args["zoneId"]?.Value<string>();
+    var zoneName = args["zoneName"]?.Value<string>();
+
+    if (string.IsNullOrEmpty(zoneId) && string.IsNullOrEmpty(zoneName))
+        throw new Exception("Either zoneId or zoneName is required");
+
+    using var cfClient = CreateCloudflareClient();
+
+    // If zoneName provided, look up zone ID
+    if (string.IsNullOrEmpty(zoneId))
+    {
+        var zonesResponse = await cfClient.GetAsync($"zones?name={zoneName}");
+        zonesResponse.EnsureSuccessStatusCode();
+        var zonesResult = JObject.Parse(await zonesResponse.Content.ReadAsStringAsync());
+        var zones = zonesResult["result"] as JArray;
+        if (zones == null || zones.Count == 0)
+            throw new Exception($"Zone '{zoneName}' not found");
+        zoneId = zones[0]["id"]?.ToString();
+    }
+
+    var response = await cfClient.GetAsync($"zones/{zoneId}/load_balancers");
+    response.EnsureSuccessStatusCode();
+
+    var content = await response.Content.ReadAsStringAsync();
+    var result = JObject.Parse(content);
+    var lbs = result["result"] as JArray ?? new JArray();
+
+    var sb = new StringBuilder();
+    sb.AppendLine("⚖️ Cloudflare Load Balancers");
+    sb.AppendLine(new string('═', 50));
+
+    if (lbs.Count == 0)
+    {
+        sb.AppendLine("No load balancers configured.");
+        return sb.ToString();
+    }
+
+    foreach (var lb in lbs)
+    {
+        var enabled = lb["enabled"]?.Value<bool>() == true;
+        var icon = enabled ? "✅" : "⏸️";
+
+        sb.AppendLine($"{icon} {lb["name"]}");
+        sb.AppendLine($"   ID: {lb["id"]}");
+        sb.AppendLine($"   Steering: {lb["steering_policy"]}");
+        sb.AppendLine($"   TTL: {lb["ttl"]}s");
+        sb.AppendLine($"   Fallback Pool: {lb["fallback_pool"]}");
+
+        var pools = lb["default_pools"] as JArray;
+        if (pools != null && pools.Count > 0)
+        {
+            sb.AppendLine($"   Pools: {string.Join(", ", pools.Select(p => p.ToString()))}");
+        }
+        sb.AppendLine();
+    }
+
+    return sb.ToString();
+});
+
+server.RegisterTool("CloudflareGetTunnels", async (args) =>
+{
+    using var cfClient = CreateCloudflareClient();
+
+    // Get account ID first
+    var accountsResponse = await cfClient.GetAsync("accounts?per_page=1");
+    accountsResponse.EnsureSuccessStatusCode();
+    var accountsResult = JObject.Parse(await accountsResponse.Content.ReadAsStringAsync());
+    var accountId = (accountsResult["result"] as JArray)?.FirstOrDefault()?["id"]?.ToString();
+
+    if (string.IsNullOrEmpty(accountId))
+        throw new Exception("No Cloudflare account found");
+
+    var response = await cfClient.GetAsync($"accounts/{accountId}/cfd_tunnel");
+    response.EnsureSuccessStatusCode();
+
+    var content = await response.Content.ReadAsStringAsync();
+    var result = JObject.Parse(content);
+    var tunnels = result["result"] as JArray ?? new JArray();
+
+    var sb = new StringBuilder();
+    sb.AppendLine("🚇 Cloudflare Tunnels");
+    sb.AppendLine(new string('═', 50));
+
+    if (tunnels.Count == 0)
+    {
+        sb.AppendLine("No tunnels configured.");
+        return sb.ToString();
+    }
+
+    foreach (var tunnel in tunnels)
+    {
+        var status = tunnel["status"]?.ToString() ?? "unknown";
+        var icon = status == "healthy" ? "✅" : status == "inactive" ? "⏸️" : "⚠️";
+
+        sb.AppendLine($"{icon} {tunnel["name"]}");
+        sb.AppendLine($"   ID: {tunnel["id"]}");
+        sb.AppendLine($"   Status: {status}");
+        sb.AppendLine($"   Created: {tunnel["created_at"]}");
+
+        var connections = tunnel["connections"] as JArray;
+        if (connections != null && connections.Count > 0)
+        {
+            sb.AppendLine($"   Active Connections: {connections.Count}");
+            foreach (var conn in connections.Take(3))
+            {
+                sb.AppendLine($"      - {conn["colo_name"]} ({conn["client_id"]?.ToString()?[..8]}...)");
+            }
+        }
+        sb.AppendLine();
+    }
+
+    return sb.ToString();
+});
+
+server.RegisterTool("CloudflareAnalyzeRouting", async (args) =>
+{
+    var zoneName = args["zoneName"]?.Value<string>();
+
+    using var cfClient = CreateCloudflareClient();
+
+    var sb = new StringBuilder();
+    sb.AppendLine("🧠 AI Routing Analysis");
+    sb.AppendLine(new string('═', 60));
+    sb.AppendLine();
+
+    // Get zones
+    var zonesUrl = string.IsNullOrEmpty(zoneName) ? "zones?per_page=50" : $"zones?name={zoneName}";
+    var zonesResponse = await cfClient.GetAsync(zonesUrl);
+    zonesResponse.EnsureSuccessStatusCode();
+    var zonesResult = JObject.Parse(await zonesResponse.Content.ReadAsStringAsync());
+    var zones = zonesResult["result"] as JArray ?? new JArray();
+
+    if (zones.Count == 0)
+    {
+        sb.AppendLine("No zones found to analyze.");
+        return sb.ToString();
+    }
+
+    // Analyze each zone
+    foreach (var zone in zones.Take(5))
+    {
+        var zoneId = zone["id"]?.ToString();
+        var zName = zone["name"]?.ToString();
+
+        sb.AppendLine($"## Zone: {zName}");
+        sb.AppendLine();
+
+        // Get DNS records
+        var dnsResponse = await cfClient.GetAsync($"zones/{zoneId}/dns_records?per_page=100");
+        var dnsResult = JObject.Parse(await dnsResponse.Content.ReadAsStringAsync());
+        var records = dnsResult["result"] as JArray ?? new JArray();
+
+        var aRecords = records.Where(r => r["type"]?.ToString() == "A").ToList();
+        var cnameRecords = records.Where(r => r["type"]?.ToString() == "CNAME").ToList();
+        var proxiedRecords = records.Where(r => r["proxied"]?.Value<bool>() == true).ToList();
+        var unproxiedRecords = records.Where(r => r["proxied"]?.Value<bool>() == false).ToList();
+
+        // Analyze and suggest
+        var suggestions = new List<string>();
+
+        // Check for unproxied A records (security concern)
+        var unproxiedA = aRecords.Where(r => r["proxied"]?.Value<bool>() == false).ToList();
+        if (unproxiedA.Count > 0)
+        {
+            suggestions.Add($"⚠️ Found {unproxiedA.Count} unproxied A records exposing origin IPs:");
+            foreach (var record in unproxiedA.Take(5))
+            {
+                suggestions.Add($"   - {record["name"]} → {record["content"]}");
+            }
+            suggestions.Add($"   💡 Recommendation: Enable Cloudflare proxy to hide origin IPs");
+        }
+
+        // Check for missing www redirect
+        var hasApex = aRecords.Any(r => r["name"]?.ToString() == zName);
+        var hasWww = records.Any(r => r["name"]?.ToString() == $"www.{zName}");
+        if (hasApex && !hasWww)
+        {
+            suggestions.Add($"⚠️ Missing www subdomain");
+            suggestions.Add($"   💡 Recommendation: Add CNAME www → {zName} for better coverage");
+        }
+
+        // Check for load balancer opportunity
+        var sameIpRecords = aRecords
+            .GroupBy(r => r["content"]?.ToString())
+            .Where(g => g.Count() >= 2)
+            .ToList();
+        if (sameIpRecords.Any())
+        {
+            suggestions.Add($"⚠️ Multiple A records pointing to same IP - no redundancy");
+            suggestions.Add($"   💡 Recommendation: Consider Cloudflare Load Balancer for high availability");
+        }
+
+        // Check for missing security headers (via page rules)
+        suggestions.Add($"ℹ️ Consider enabling:");
+        suggestions.Add($"   - HSTS (Strict-Transport-Security)");
+        suggestions.Add($"   - Always Use HTTPS");
+        suggestions.Add($"   - Automatic HTTPS Rewrites");
+        suggestions.Add($"   - Browser Integrity Check");
+
+        // Get load balancers
+        try
+        {
+            var lbResponse = await cfClient.GetAsync($"zones/{zoneId}/load_balancers");
+            if (lbResponse.IsSuccessStatusCode)
+            {
+                var lbResult = JObject.Parse(await lbResponse.Content.ReadAsStringAsync());
+                var lbs = lbResult["result"] as JArray ?? new JArray();
+
+                if (lbs.Count > 0)
+                {
+                    sb.AppendLine($"**Load Balancers**: {lbs.Count} configured");
+                    foreach (var lb in lbs)
+                    {
+                        var steering = lb["steering_policy"]?.ToString() ?? "off";
+                        if (steering == "off" || steering == "")
+                        {
+                            suggestions.Add($"⚠️ Load Balancer '{lb["name"]}' has no steering policy");
+                            suggestions.Add($"   💡 Recommendation: Enable geo/latency steering for better performance");
+                        }
+                    }
+                }
+                else
+                {
+                    if (aRecords.Count > 0)
+                    {
+                        suggestions.Add($"💡 No load balancers configured");
+                        suggestions.Add($"   Consider adding load balancing for:");
+                        suggestions.Add($"   - Automatic failover");
+                        suggestions.Add($"   - Geographic routing (latency optimization)");
+                        suggestions.Add($"   - Health checks for origins");
+                    }
+                }
+            }
+        }
+        catch { /* Ignore LB fetch errors */ }
+
+        // Output suggestions
+        sb.AppendLine($"**DNS Records**: {records.Count} total ({proxiedRecords.Count} proxied, {unproxiedRecords.Count} direct)");
+        sb.AppendLine();
+        sb.AppendLine("### Recommendations:");
+        foreach (var suggestion in suggestions)
+        {
+            sb.AppendLine(suggestion);
+        }
+        sb.AppendLine();
+    }
+
+    // Overall infrastructure suggestions
+    sb.AppendLine("## Global Recommendations");
+    sb.AppendLine();
+    sb.AppendLine("🔐 **Security**");
+    sb.AppendLine("   - Use Cloudflare Tunnels instead of exposing origin IPs");
+    sb.AppendLine("   - Enable WAF rules for common attack patterns");
+    sb.AppendLine("   - Set up Rate Limiting for API endpoints");
+    sb.AppendLine();
+    sb.AppendLine("⚡ **Performance**");
+    sb.AppendLine("   - Enable Argo Smart Routing for 30%+ latency improvement");
+    sb.AppendLine("   - Use Workers for edge computing / caching");
+    sb.AppendLine("   - Configure Cache Rules for static assets");
+    sb.AppendLine();
+    sb.AppendLine("🔄 **Reliability**");
+    sb.AppendLine("   - Set up Load Balancers with health checks");
+    sb.AppendLine("   - Configure multiple origin pools in different regions");
+    sb.AppendLine("   - Use steering policy: dynamic_latency or geo");
+
+    return sb.ToString();
+});
+
+// ============================================================================
+// DevOps Tools - Repository, Pull Request, and Pipeline Management
+// ============================================================================
+
+server.RegisterTool("GetDevOpsRepositories", async (args) =>
+{
+    var activeOnly = args["activeOnly"]?.Value<bool>() ?? true;
+    var response = await server.Http.GetAsync($"/api/devops/repositories?activeOnly={activeOnly}");
+    response.EnsureSuccessStatusCode();
+    var result = JObject.Parse(await response.Content.ReadAsStringAsync());
+    var repos = result["data"] as JArray ?? new JArray();
+
+    return new
+    {
+        success = true,
+        count = repos.Count,
+        repositories = repos.Select(r => new
+        {
+            id = r["id"],
+            provider = r["provider"],
+            repositoryName = r["repositoryName"],
+            repositoryUrl = r["repositoryUrl"],
+            defaultBranch = r["defaultBranch"],
+            isActive = r["isActive"],
+            webhookActive = r["webhookActive"],
+            description = r["description"],
+            isPrivate = r["isPrivate"],
+            lastSyncedAt = r["lastSyncedAt"]
+        }).ToList(),
+        hint = repos.Count == 0
+            ? "No repositories connected. Use ConnectRepository to add one."
+            : $"Found {repos.Count} connected repositories."
+    };
+});
+
+server.RegisterTool("GetDevOpsRepository", async (args) =>
+{
+    var repositoryId = args["repositoryId"]?.Value<int>() ?? throw new ArgumentException("repositoryId required");
+    var response = await server.Http.GetAsync($"/api/devops/repositories/{repositoryId}");
+    response.EnsureSuccessStatusCode();
+    var repo = JObject.Parse(await response.Content.ReadAsStringAsync());
+
+    return new
+    {
+        success = true,
+        repository = new
+        {
+            id = repo["id"],
+            provider = repo["provider"],
+            repositoryName = repo["repositoryName"],
+            repositoryUrl = repo["repositoryUrl"],
+            defaultBranch = repo["defaultBranch"],
+            isActive = repo["isActive"],
+            webhookActive = repo["webhookActive"],
+            description = repo["description"],
+            isPrivate = repo["isPrivate"],
+            lastSyncedAt = repo["lastSyncedAt"],
+            accessTokenSet = !string.IsNullOrEmpty(repo["accessToken"]?.ToString())
+        }
+    };
+});
+
+server.RegisterTool("ConnectRepository", async (args) =>
+{
+    var request = new JObject
+    {
+        ["provider"] = args["provider"]?.ToString() ?? throw new ArgumentException("provider required (GitHub, GitLab, AzureDevOps)"),
+        ["repositoryName"] = args["repositoryName"]?.ToString() ?? throw new ArgumentException("repositoryName required"),
+        ["repositoryUrl"] = args["repositoryUrl"]?.ToString() ?? throw new ArgumentException("repositoryUrl required"),
+        ["accessToken"] = args["accessToken"]?.ToString() ?? throw new ArgumentException("accessToken required"),
+        ["defaultBranch"] = args["defaultBranch"]?.ToString() ?? "main",
+        ["description"] = args["description"]?.ToString(),
+        ["isPrivate"] = args["isPrivate"]?.Value<bool>() ?? false,
+        ["setupWebhook"] = args["setupWebhook"]?.Value<bool>() ?? true
+    };
+
+    // Azure DevOps specific
+    if (request["provider"]?.ToString() == "AzureDevOps")
+    {
+        request["azureOrganization"] = args["azureOrganization"]?.ToString() ?? throw new ArgumentException("azureOrganization required for AzureDevOps");
+        request["azureProject"] = args["azureProject"]?.ToString() ?? throw new ArgumentException("azureProject required for AzureDevOps");
+    }
+
+    var content = new StringContent(request.ToString(), Encoding.UTF8, "application/json");
+    var response = await server.Http.PostAsync("/api/devops/repositories", content);
+    response.EnsureSuccessStatusCode();
+    var repo = JObject.Parse(await response.Content.ReadAsStringAsync());
+
+    return new
+    {
+        success = true,
+        message = "Repository connected successfully",
+        repository = new
+        {
+            id = repo["id"],
+            provider = repo["provider"],
+            repositoryName = repo["repositoryName"],
+            webhookActive = repo["webhookActive"]
+        },
+        hint = repo["webhookActive"]?.Value<bool>() == true
+            ? "Webhook configured - PRs and pipeline events will sync automatically."
+            : "Webhook not configured. Consider enabling for automatic sync."
+    };
+});
+
+server.RegisterTool("UpdateRepository", async (args) =>
+{
+    var request = new JObject
+    {
+        ["id"] = args["repositoryId"]?.Value<int>() ?? throw new ArgumentException("repositoryId required")
+    };
+    if (args["isActive"] != null) request["isActive"] = args["isActive"];
+    if (args["defaultBranch"] != null) request["defaultBranch"] = args["defaultBranch"];
+    if (args["description"] != null) request["description"] = args["description"];
+    if (args["accessToken"] != null) request["accessToken"] = args["accessToken"];
+
+    var content = new StringContent(request.ToString(), Encoding.UTF8, "application/json");
+    var response = await server.Http.PutAsync("/api/devops/repositories", content);
+    response.EnsureSuccessStatusCode();
+
+    return new
+    {
+        success = true,
+        message = "Repository updated successfully"
+    };
+});
+
+server.RegisterTool("DisconnectRepository", async (args) =>
+{
+    var repositoryId = args["repositoryId"]?.Value<int>() ?? throw new ArgumentException("repositoryId required");
+    var response = await server.Http.DeleteAsync($"/api/devops/repositories/{repositoryId}");
+    response.EnsureSuccessStatusCode();
+
+    return new
+    {
+        success = true,
+        message = "Repository disconnected successfully"
+    };
+});
+
+server.RegisterTool("GetPullRequests", async (args) =>
+{
+    var repositoryId = args["repositoryId"]?.Value<int>();
+    var state = args["state"]?.ToString();
+    var limit = args["limit"]?.Value<int>() ?? 50;
+
+    string url;
+    if (repositoryId.HasValue)
+    {
+        url = $"/api/devops/repositories/{repositoryId}/pullrequests?limit={limit}";
+    }
+    else
+    {
+        url = $"/api/devops/pullrequests?limit={limit}";
+    }
+    if (!string.IsNullOrEmpty(state)) url += $"&state={state}";
+
+    var response = await server.Http.GetAsync(url);
+    response.EnsureSuccessStatusCode();
+    var result = JObject.Parse(await response.Content.ReadAsStringAsync());
+    var prs = result["data"] as JArray ?? new JArray();
+
+    return new
+    {
+        success = true,
+        count = prs.Count,
+        pullRequests = prs.Select(pr => new
+        {
+            id = pr["id"],
+            externalPrNumber = pr["externalPrNumber"],
+            title = pr["title"],
+            state = pr["state"],
+            url = pr["url"],
+            sourceBranch = pr["sourceBranch"],
+            targetBranch = pr["targetBranch"],
+            authorUsername = pr["authorUsername"],
+            ciStatus = pr["ciStatus"],
+            taskId = pr["taskId"],
+            createdAt = pr["createdAt"],
+            updatedAt = pr["updatedAt"]
+        }).ToList(),
+        hint = prs.Count == 0 ? "No pull requests found." : null
+    };
+});
+
+server.RegisterTool("GetTaskPullRequests", async (args) =>
+{
+    var taskId = args["taskId"]?.Value<int>() ?? throw new ArgumentException("taskId required");
+    var response = await server.Http.GetAsync($"/api/devops/tasks/{taskId}/pullrequests");
+    response.EnsureSuccessStatusCode();
+    var result = JObject.Parse(await response.Content.ReadAsStringAsync());
+    var prs = result["data"] as JArray ?? new JArray();
+
+    return new
+    {
+        success = true,
+        taskId = taskId,
+        count = prs.Count,
+        pullRequests = prs.Select(pr => new
+        {
+            id = pr["id"],
+            externalPrNumber = pr["externalPrNumber"],
+            title = pr["title"],
+            state = pr["state"],
+            url = pr["url"],
+            ciStatus = pr["ciStatus"]
+        }).ToList(),
+        hint = prs.Count == 0
+            ? "No PRs linked to this task. PRs can be linked via 'Fixes SERVED-123' in PR description."
+            : $"Found {prs.Count} PR(s) linked to task."
+    };
+});
+
+server.RegisterTool("GetAgentSessionPullRequests", async (args) =>
+{
+    var sessionId = args["sessionId"]?.Value<int>() ?? throw new ArgumentException("sessionId required");
+    var response = await server.Http.GetAsync($"/api/devops/sessions/{sessionId}/pullrequests");
+    response.EnsureSuccessStatusCode();
+    var result = JObject.Parse(await response.Content.ReadAsStringAsync());
+    var prs = result["data"] as JArray ?? new JArray();
+
+    return new
+    {
+        success = true,
+        sessionId = sessionId,
+        count = prs.Count,
+        pullRequests = prs.Select(pr => new
+        {
+            id = pr["id"],
+            externalPrNumber = pr["externalPrNumber"],
+            title = pr["title"],
+            state = pr["state"],
+            url = pr["url"],
+            ciStatus = pr["ciStatus"]
+        }).ToList()
+    };
+});
+
+server.RegisterTool("LinkPullRequestToTask", async (args) =>
+{
+    var pullRequestId = args["pullRequestId"]?.Value<int>() ?? throw new ArgumentException("pullRequestId required");
+    var taskId = args["taskId"]?.Value<int>() ?? throw new ArgumentException("taskId required");
+
+    var request = new JObject { ["taskId"] = taskId };
+    var content = new StringContent(request.ToString(), Encoding.UTF8, "application/json");
+    var response = await server.Http.PostAsync($"/api/devops/pullrequests/{pullRequestId}/link", content);
+    response.EnsureSuccessStatusCode();
+
+    return new
+    {
+        success = true,
+        message = $"PR #{pullRequestId} linked to task #{taskId}",
+        hint = "The task will now show this PR in its DevOps section."
+    };
+});
+
+server.RegisterTool("GetPipelineRuns", async (args) =>
+{
+    var pullRequestId = args["pullRequestId"]?.Value<int>();
+    var repositoryId = args["repositoryId"]?.Value<int>();
+    var limit = args["limit"]?.Value<int>() ?? 50;
+
+    if (!pullRequestId.HasValue && !repositoryId.HasValue)
+        throw new ArgumentException("Either pullRequestId or repositoryId is required");
+
+    string url;
+    if (pullRequestId.HasValue)
+    {
+        url = $"/api/devops/pullrequests/{pullRequestId}/runs";
+    }
+    else
+    {
+        url = $"/api/devops/repositories/{repositoryId}/runs?limit={limit}";
+    }
+
+    var response = await server.Http.GetAsync(url);
+    response.EnsureSuccessStatusCode();
+    var result = JObject.Parse(await response.Content.ReadAsStringAsync());
+    var runs = result["data"] as JArray ?? new JArray();
+
+    return new
+    {
+        success = true,
+        count = runs.Count,
+        pipelineRuns = runs.Select(run => new
+        {
+            id = run["id"],
+            pipelineName = run["pipelineName"],
+            status = run["status"],
+            conclusion = run["conclusion"],
+            url = run["url"],
+            durationSeconds = run["durationSeconds"],
+            startedAt = run["startedAt"],
+            finishedAt = run["finishedAt"]
+        }).ToList()
+    };
+});
+
+server.RegisterTool("GetLatestPipelineRun", async (args) =>
+{
+    var pullRequestId = args["pullRequestId"]?.Value<int>() ?? throw new ArgumentException("pullRequestId required");
+    var response = await server.Http.GetAsync($"/api/devops/pullrequests/{pullRequestId}/runs/latest");
+
+    if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+    {
+        return new
+        {
+            success = true,
+            pullRequestId = pullRequestId,
+            latestRun = (object?)null,
+            summary = "No pipeline runs found",
+            hint = "This PR has no CI/CD runs yet."
+        };
+    }
+
+    response.EnsureSuccessStatusCode();
+    var run = JObject.Parse(await response.Content.ReadAsStringAsync());
+
+    var conclusion = run["conclusion"]?.ToString() ?? "Unknown";
+    var status = run["status"]?.ToString() ?? "Unknown";
+    var duration = run["durationSeconds"]?.Value<int>() ?? 0;
+
+    var summary = status == "Completed"
+        ? $"CI Status: {(conclusion == "Success" ? "✅ OK" : "❌ Failed")} ({conclusion})"
+        : $"CI Status: ⏳ {status}";
+
+    var hint = conclusion switch
+    {
+        "Success" => "Pipeline completed successfully! Ready to merge.",
+        "Failure" => "Pipeline failed. Check logs for details.",
+        "Cancelled" => "Pipeline was cancelled.",
+        _ => status == "InProgress" ? "Pipeline is still running..." : null
+    };
+
+    return new
+    {
+        success = true,
+        pullRequestId = pullRequestId,
+        latestRun = new
+        {
+            id = run["id"],
+            pipelineName = run["pipelineName"],
+            status = status,
+            conclusion = conclusion,
+            url = run["url"],
+            durationSeconds = duration
+        },
+        summary = summary,
+        hint = hint
+    };
+});
+
+server.RegisterTool("GetPipelineJobs", async (args) =>
+{
+    var repositoryId = args["repositoryId"]?.Value<int>() ?? throw new ArgumentException("repositoryId required");
+    var pipelineId = args["pipelineId"]?.Value<long>() ?? throw new ArgumentException("pipelineId required");
+
+    var response = await server.Http.GetAsync($"/api/devops/repositories/{repositoryId}/pipelines/{pipelineId}/jobs");
+    response.EnsureSuccessStatusCode();
+    var result = JObject.Parse(await response.Content.ReadAsStringAsync());
+    var jobs = result["data"] as JArray ?? new JArray();
+
+    var failedJobs = jobs.Where(j => j["status"]?.ToString() == "failed").ToList();
+
+    return new
+    {
+        success = true,
+        pipelineId = pipelineId,
+        count = jobs.Count,
+        jobs = jobs.Select(j => new
+        {
+            id = j["id"],
+            name = j["name"],
+            stage = j["stage"],
+            status = j["status"],
+            duration = j["duration"],
+            webUrl = j["web_url"]
+        }).ToList(),
+        summary = failedJobs.Count > 0
+            ? $"❌ {failedJobs.Count} job(s) failed: {string.Join(", ", failedJobs.Select(j => j["name"]))}"
+            : "✅ All jobs passed"
+    };
+});
+
+server.RegisterTool("GetJobLog", async (args) =>
+{
+    var repositoryId = args["repositoryId"]?.Value<int>() ?? throw new ArgumentException("repositoryId required");
+    var jobId = args["jobId"]?.Value<long>() ?? throw new ArgumentException("jobId required");
+    var tail = args["tail"]?.Value<int>() ?? 100;
+
+    var response = await server.Http.GetAsync($"/api/devops/repositories/{repositoryId}/jobs/{jobId}/log");
+    response.EnsureSuccessStatusCode();
+    var log = await response.Content.ReadAsStringAsync();
+
+    // Get last N lines
+    var lines = log.Split('\n');
+    var lastLines = lines.TakeLast(tail).ToArray();
+
+    return new
+    {
+        success = true,
+        jobId = jobId,
+        totalLines = lines.Length,
+        returnedLines = lastLines.Length,
+        log = string.Join("\n", lastLines),
+        hint = lines.Length > tail ? $"Showing last {tail} lines. Use 'tail' parameter to get more." : null
+    };
+});
+
+server.RegisterTool("RetryJob", async (args) =>
+{
+    var repositoryId = args["repositoryId"]?.Value<int>() ?? throw new ArgumentException("repositoryId required");
+    var jobId = args["jobId"]?.Value<long>() ?? throw new ArgumentException("jobId required");
+
+    var response = await server.Http.PostAsync($"/api/devops/repositories/{repositoryId}/jobs/{jobId}/retry", null);
+    response.EnsureSuccessStatusCode();
+
+    return new
+    {
+        success = true,
+        message = $"Job #{jobId} retried successfully",
+        hint = "Check pipeline status for updated results."
+    };
+});
+
+server.RegisterTool("CancelJob", async (args) =>
+{
+    var repositoryId = args["repositoryId"]?.Value<int>() ?? throw new ArgumentException("repositoryId required");
+    var jobId = args["jobId"]?.Value<long>() ?? throw new ArgumentException("jobId required");
+
+    var response = await server.Http.PostAsync($"/api/devops/repositories/{repositoryId}/jobs/{jobId}/cancel", null);
+    response.EnsureSuccessStatusCode();
+
+    return new
+    {
+        success = true,
+        message = $"Job #{jobId} cancelled",
+        hint = "The job has been stopped."
+    };
+});
 
 // Start Server
 await server.RunAsync();

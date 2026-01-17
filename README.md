@@ -1,15 +1,73 @@
-# ServedMCP
+# Served MCP Server
 
-AI skills og tools dokumentation for Served platformen.
+**Version:** 2026.1.2
+
+MCP (Model Context Protocol) Server for AI assistants to interact with the Served platform. Enables Claude, GPT, and other AI models to access workspaces, projects, tasks, customers, and more.
+
+## Features
+
+- **40+ MCP Tools** - Full CRUD operations on Served entities
+- **AI Intelligence** - Project health analysis, task decomposition, effort estimation
+- **DevOps Integration** - Git repos, PRs, CI/CD pipelines
+- **SDK Tracing** - OpenTelemetry observability via Served.SDK
+- **Analytics** - Tool usage metrics and performance tracking
 
 ## Quick Links
 
-| Dokument | Beskrivelse |
+| Document | Description |
 |----------|-------------|
-| [skills/claude.md](skills/claude.md) | REST API reference (500+ endpoints) |
-| [skills/mcp.md](skills/mcp.md) | MCP tools guide og workflows |
-| [tools/api/](tools/api/) | REST API tool dokumentation |
-| [tools/mcp/](tools/mcp/) | MCP Server tools |
+| [UNIFIED-FORMAT.md](UNIFIED-FORMAT.md) | Unified file format specification |
+| [tools/mcp/](tools/mcp/) | MCP tool documentation (unified format) |
+| [tools/api/](tools/api/) | REST API tool documentation |
+| [skills/](skills/) | Skills documentation |
+| [schemas/](schemas/) | JSON schemas |
+
+---
+
+## Unified File Format
+
+All MCP documentation uses the **Unified File Format** for consistency and machine-readability.
+
+### Supported Formats
+
+| Format | Extension | Use Case |
+|--------|-----------|----------|
+| Markdown | `.unified.md` | Human-readable with YAML frontmatter |
+| JSON | `.unified.json` | Machine-readable, API integration |
+| YAML | `.unified.yaml` | Machine-readable, configuration |
+
+### Structure
+
+```markdown
+---
+type: mcp-tool
+name: ToolName
+version: 2026.1.2
+domain: tasks
+tags: [mcp, tasks, crud]
+description: Brief description.
+---
+
+# ToolName
+
+## Parameters
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+
+## Response
+\`\`\`json
+{ "success": true }
+\`\`\`
+
+## Examples
+...
+```
+
+### Schema
+
+JSON Schema: `schemas/unified-v1.json`
+
+See [UNIFIED-FORMAT.md](UNIFIED-FORMAT.md) for full specification.
 
 ---
 
@@ -23,8 +81,31 @@ MCP Server: `https://app.served.dk/mcp`
 |------|-------------|
 | `GetUserContext` | Hent bruger profil og workspaces. **Kald denne først.** |
 | `GetTenantContext` | Hent detaljeret tenant info (indstillinger, kategorier). |
+| `GetProjectContext` | Hent projekt med tasks, team og recent activity. |
 
-→ Se [tools/mcp/context.md](tools/mcp/context.md) for detaljer
+→ Se [tools/mcp/context.unified.md](tools/mcp/context.unified.md) for detaljer
+
+### Agent Plan (TodoWrite-style)
+
+| Tool | Beskrivelse |
+|------|-------------|
+| `AgentPlanGet` | Hent nuværende plan/todos for aktiv agent session. |
+| `AgentPlanAdd` | Tilføj nyt todo item til plan. |
+| `AgentPlanUpdate` | Opdater todo status (pending/in_progress/completed/skipped). |
+
+→ Se [tools/mcp/agentplan.unified.md](tools/mcp/agentplan.unified.md) for parametre
+
+### Canvas
+
+| Tool | Beskrivelse |
+|------|-------------|
+| `GetCanvasList` | List canvases i en workspace. |
+| `GetCanvasDetail` | Hent canvas med alle nodes og edges. |
+| `CreateCanvas` | Opret ny canvas. |
+| `AddCanvasNode` | Tilføj node til canvas (text/file/link/group/entity). |
+| `SaveContextToCanvas` | Gem aktuel agent context til canvas. |
+
+→ Se [tools/mcp/canvas.unified.md](tools/mcp/canvas.unified.md) for parametre
 
 ### Projects
 
@@ -38,7 +119,7 @@ MCP Server: `https://app.served.dk/mcp`
 | `UpdateProjectsBulk` | Bulk opdater projekter (kræver bekræftelse) |
 | `ExecuteUpdateProjectsBulk` | Udfør bulk opdatering af projekter |
 
-→ Se [tools/mcp/projects.md](tools/mcp/projects.md) for parametre
+→ Se [tools/mcp/projects.unified.md](tools/mcp/projects.unified.md) for parametre
 
 ### Tasks
 
@@ -54,7 +135,7 @@ MCP Server: `https://app.served.dk/mcp`
 | `UpdateTasksBulk` | Bulk opdater (kræver bekræftelse) |
 | `ExecuteUpdateTasksBulk` | Udfør bulk opdatering efter bekræftelse |
 
-→ Se [tools/mcp/tasks.md](tools/mcp/tasks.md) for parametre
+→ Se [tools/mcp/tasks.unified.md](tools/mcp/tasks.unified.md) for parametre
 
 ### Customers
 
@@ -66,7 +147,7 @@ MCP Server: `https://app.served.dk/mcp`
 | `UpdateCustomer` | Opdater kunde |
 | `DeleteCustomer` | Slet kunde |
 
-→ Se [tools/mcp/customers.md](tools/mcp/customers.md) for parametre
+→ Se [tools/mcp/customers.unified.md](tools/mcp/customers.unified.md) for parametre
 
 ### Agreements
 
@@ -78,7 +159,7 @@ MCP Server: `https://app.served.dk/mcp`
 | `UpdateAgreement` | Opdater aftale |
 | `DeleteAgreement` | Slet aftale |
 
-→ Se [tools/mcp/agreements.md](tools/mcp/agreements.md) for parametre
+→ Se [tools/mcp/agreements.unified.md](tools/mcp/agreements.unified.md) for parametre
 
 ### Custom Fields
 
@@ -89,7 +170,7 @@ MCP Server: `https://app.served.dk/mcp`
 | `SetCustomFieldValue` | Sæt en enkelt custom field værdi |
 | `BulkSetCustomFieldValues` | Sæt flere custom field værdier på én gang |
 
-→ Se [tools/mcp/customfields.md](tools/mcp/customfields.md) for parametre
+→ Se [tools/mcp/customfields.unified.md](tools/mcp/customfields.unified.md) for parametre
 
 ### Time Tracking (AI)
 
@@ -98,7 +179,7 @@ MCP Server: `https://app.served.dk/mcp`
 | `SuggestTimeEntries` | AI-forslag til tidsregistrering |
 | `AnalyzeTimePatterns` | Analyser brugerens tidsmønstre |
 
-→ Se [tools/mcp/timetracking.md](tools/mcp/timetracking.md) for parametre
+→ Se [tools/mcp/timetracking.unified.md](tools/mcp/timetracking.unified.md) for parametre
 
 ### Project Intelligence (AI)
 
@@ -109,7 +190,7 @@ MCP Server: `https://app.served.dk/mcp`
 | `EstimateEffort` | AI-estimat baseret på historik |
 | `FindSimilarProjects` | Find lignende projekter |
 
-→ Se [tools/mcp/intelligence.md](tools/mcp/intelligence.md) for parametre
+→ Se [tools/mcp/intelligence.unified.md](tools/mcp/intelligence.unified.md) for parametre
 
 ### Employees
 
@@ -117,7 +198,7 @@ MCP Server: `https://app.served.dk/mcp`
 |------|-------------|
 | `GetEmployees` | List team medlemmer |
 
-→ Se [tools/mcp/employees.md](tools/mcp/employees.md) for parametre
+→ Se [tools/mcp/employees.unified.md](tools/mcp/employees.unified.md) for parametre
 
 ### DevOps - Git Repositories
 
@@ -129,7 +210,7 @@ MCP Server: `https://app.served.dk/mcp`
 | `UpdateRepository` | Opdater repository indstillinger |
 | `DisconnectRepository` | Fjern repository forbindelse |
 
-→ Se [tools/mcp/devops.md](tools/mcp/devops.md) for parametre
+→ Se [tools/mcp/devops.unified.md](tools/mcp/devops.unified.md) for parametre
 
 ### DevOps - Pull Requests
 
@@ -140,7 +221,7 @@ MCP Server: `https://app.served.dk/mcp`
 | `GetAgentSessionPullRequests` | Hent PRs oprettet af CLI agent session |
 | `LinkPullRequestToTask` | Link PR til Served task |
 
-→ Se [tools/mcp/devops.md](tools/mcp/devops.md) for parametre
+→ Se [tools/mcp/devops.unified.md](tools/mcp/devops.unified.md) for parametre
 
 ### DevOps - Pipeline/CI
 
@@ -148,8 +229,25 @@ MCP Server: `https://app.served.dk/mcp`
 |------|-------------|
 | `GetPipelineRuns` | Hent pipeline runs for PR eller repository |
 | `GetLatestPipelineRun` | Hent seneste CI status for PR |
+| `GetPipelineJobs` | Hent jobs for en pipeline (GitLab) |
+| `GetJobLog` | Hent log output fra et job |
+| `RetryJob` | Retry et fejlet job |
+| `CancelJob` | Annuller et kørende job |
 
-→ Se [tools/mcp/devops.md](tools/mcp/devops.md) for parametre
+→ Se [tools/mcp/devops.unified.md](tools/mcp/devops.unified.md) for parametre
+
+### Files (Local Filesystem)
+
+| Tool | Beskrivelse |
+|------|-------------|
+| `served_file_find` | Find files with smart filtering |
+| `served_file_stats` | Get directory statistics |
+| `served_file_duplicates` | Find duplicate files |
+| `served_file_tree` | Display directory tree |
+| `served_file_auth_status` | Check tooling auth config |
+| `served_file_auth_allow` | Grant temporary path access |
+
+→ Se [tools/mcp/files.unified.md](tools/mcp/files.unified.md) for parametre
 
 ---
 
@@ -272,7 +370,50 @@ Base URL: `https://app.served.dk`
 | `/api/customField/SetValue` | POST | Sæt enkelt værdi |
 | `/api/customField/BulkSetValues` | POST | Sæt flere værdier |
 
-→ Se [tools/mcp/customfields.md](tools/mcp/customfields.md) for MCP integration
+→ Se [tools/mcp/customfields.unified.md](tools/mcp/customfields.unified.md) for MCP integration
+
+---
+
+## Observability & Tracing
+
+MCP Server uses Served.SDK for distributed tracing via OpenTelemetry.
+
+### Configuration
+
+```bash
+# Enable tracing via environment variables
+export SERVED_MCP_TRACING=true
+export FORGE_API_KEY="your-forge-api-key"
+
+# Or for OTLP collector
+export OTEL_EXPORTER_OTLP_ENDPOINT="http://localhost:4317"
+```
+
+### What Gets Traced
+
+Every tool call captures:
+
+| Attribute | Description |
+|-----------|-------------|
+| `mcp.tool.name` | Tool name (e.g., `GetTasks`) |
+| `mcp.tool.success` | Whether the call succeeded |
+| `mcp.session.id` | Session identifier |
+| `mcp.agent.id` | Agent identifier |
+| `mcp.conversation.turn` | Turn number in conversation |
+| `mcp.result.size` | Size of result payload |
+| Duration | Execution time in ms |
+
+### Metrics
+
+| Metric | Type | Labels |
+|--------|------|--------|
+| `mcp.tool.duration` | Histogram | tool_name, success |
+
+### Disable Tracking
+
+```bash
+export SERVED_MCP_TRACKING=false
+```
 
 ---
 
@@ -293,3 +434,25 @@ Authorization: Bearer <JWT_TOKEN>
 
 **MCP:**
 OAuth med scopes: `projects`, `tasks`, `customers`, `calendar`, `timetracking`, `employees`, `intelligence`, `customfields`, `devops`
+
+---
+
+## Changelog
+
+### v2026.1.2 (2026-01-17)
+
+- **Unified File Format** - All documentation converted to `.unified.md` format with YAML frontmatter
+- **SDK Tracing** - Integrated with Served.SDK tracing infrastructure
+- **OpenTelemetry** - Tool calls now emit spans and metrics
+- **Forge Integration** - Native export to Forge observability platform
+- **Analytics** - Enhanced tool usage tracking with session context
+- **DevOps Enhancement** - Extended DevOps tools with pipeline jobs, logs, retry, and cancel
+- **File Tools** - Added local filesystem tools with tooling-auth protection
+- **JSON Schema** - Added `schemas/unified-v1.json` for format validation
+
+### v2026.1.1
+
+- Initial MCP server implementation
+- 40+ tools for Served platform access
+- DevOps integration (repos, PRs, pipelines)
+- AI intelligence tools
