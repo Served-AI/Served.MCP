@@ -1,7 +1,7 @@
 ---
 type: skill
 name: ServedAPI
-version: 2026.1.2
+version: 2026.1.3
 domain: integrations
 tags: [skill, api, rest, authentication, served-platform]
 description: Claude skill for Served platform API - authentication, endpoints, and integration patterns.
@@ -84,6 +84,43 @@ curl -X POST 'https://app.served.dk/api/endpoint' \
 ```bash
 curl -X GET 'https://app.served.dk/api/endpoint' \
   -H 'X-API-Key: <API_KEY>'
+```
+
+---
+
+## Response Format
+
+Default response format is **JSON**. Use headers to request different formats.
+
+### Headers
+
+| Header | Example | Description |
+|--------|---------|-------------|
+| `Accept` | `application/xml` | Standard content negotiation |
+| `X-Response-Format` | `xml` | Custom format header |
+| `X-Request-Format` | `json` | Request body format |
+
+### Supported Formats
+
+| Format | MIME Type | Value |
+|--------|-----------|-------|
+| JSON (default) | `application/json` | `json` |
+| XML | `application/xml` | `xml` |
+| YAML | `application/x-yaml` | `yaml` |
+| MessagePack | `application/msgpack` | `msgpack` |
+
+### Example
+
+```bash
+# Get XML response
+curl -X GET 'https://app.served.dk/api/bootstrap/user' \
+  -H "Authorization: Bearer ${USER_JWT}" \
+  -H 'Accept: application/xml'
+
+# Or using custom header
+curl -X GET 'https://app.served.dk/api/bootstrap/user' \
+  -H "Authorization: Bearer ${USER_JWT}" \
+  -H 'X-Response-Format: yaml'
 ```
 
 ---

@@ -57,6 +57,21 @@ public class McpServer(ServedClient servedClient, string baseUrl, string token, 
     }
 
     /// <summary>
+    /// Get all registered tool names.
+    /// </summary>
+    public IReadOnlyCollection<string> GetRegisteredToolNames() => _tools.Keys.ToList().AsReadOnly();
+
+    /// <summary>
+    /// Check if a tool is registered.
+    /// </summary>
+    public bool HasTool(string name) => _tools.ContainsKey(name);
+
+    /// <summary>
+    /// Get count of registered tools.
+    /// </summary>
+    public int ToolCount => _tools.Count;
+
+    /// <summary>
     /// Track a tool call for analytics. Uses SDK tracing when available, falls back to HTTP tracking.
     /// </summary>
     private async Task TrackToolCallAsync(string toolName, JObject? arguments, bool success, long durationMs, string? errorType = null, int? resultSize = null)

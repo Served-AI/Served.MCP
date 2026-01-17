@@ -8,6 +8,7 @@ using Served.SDK.Models.Projects;
 using Served.SDK.Models.Dashboards;
 using Served.SDK.Models.Datasource;
 using Served.SDK.Tracing;
+using Served.SDK.Utilities;
 
 // Configuration - Load from env vars
 var baseUrl = Environment.GetEnvironmentVariable("SERVED_API_URL") ?? "https://app.served.dk";
@@ -70,7 +71,7 @@ server.RegisterTool("CreateProject", async (args) =>
 
 server.RegisterTool("GetProjectDetails", async (args) =>
 {
-    var projectId = args["projectId"]?.Value<int>() ?? throw new ArgumentException("ProjectId required");
+    var projectId = args.GetRequiredInt("projectId");
     var project = await client.Projects.GetAsync(projectId);
     return project;
 });
@@ -82,80 +83,57 @@ server.RegisterTool("GetProjectDetails", async (args) =>
 server.RegisterTool("GetApiKeys", async (args) =>
 {
     var apiKeys = await client.ApiKeys.ListAsync();
-    var sb = new StringBuilder();
-    sb.AppendLine($"Her er {apiKeys.Count} API nøgler:");
-    sb.AppendLine();
 
-    foreach (var key in apiKeys)
-    {
-        sb.AppendLine($"@apikey[{key.Id}] {{");
-        sb.AppendLine($"  name: \"{key.Name}\"");
-        sb.AppendLine($"  prefix: \"{key.KeyHint}\"");
-        sb.AppendLine($"  scopes: [{string.Join(", ", key.Scopes.ConvertAll(s => $"\"{s}\""))}]");
-        sb.AppendLine($"  lastUsed: \"{key.LastUsedAt?.ToString("yyyy-MM-dd HH:mm") ?? "Aldrig"}\"");
-        sb.AppendLine($"  status: \"{(key.IsActive ? "Aktiv" : "Inaktiv")}\"");
-        sb.AppendLine("}");
-        sb.AppendLine();
-    }
-    return sb.ToString();
+    return ResponseFormatter.Create()
+        .CountHeaderDa(apiKeys.Count, "API nøgle", "API nøgler")
+        .EntityList("apikey", apiKeys, k => k.Id, (f, key) =>
+        {
+            f.PropString("name", key.Name)
+             .PropString("prefix", key.KeyHint)
+             .PropList("scopes", key.Scopes)
+             .PropDateTime("lastUsed", key.LastUsedAt, "Aldrig")
+             .PropString("status", key.IsActive ? "Aktiv" : "Inaktiv");
+        })
+        .ToString();
 });
 
 server.RegisterTool("GetApiKeyScopes", async (args) =>
 {
     var scopes = await client.ApiKeys.GetScopesAsync();
-    var sb = new StringBuilder();
-    sb.AppendLine("Tilgængelige API Key scopes:");
-    sb.AppendLine();
-    foreach (var scope in scopes)
-    {
-        sb.AppendLine($"- {scope.Scope}: {scope.Description}");
-    }
-    return sb.ToString();
+    return ResponseFormatter.Create()
+        .Header("Tilgængelige API Key scopes:")
+        .ForEach(scopes, (f, scope) => f.Bullet($"{scope.Scope}: {scope.Description}"))
+        .ToString();
 });
 
 server.RegisterTool("CreateApiKey", async (args) =>
 {
-    var name = args["name"]?.Value<string>() ?? throw new ArgumentException("name required");
-    var scopesToken = args["scopes"];
-    var expiresInDays = args["expiresInDays"]?.Value<int>() ?? 365;
-
-    var scopes = new List<string>();
-    if (scopesToken is JArray scopesArray)
-    {
-        foreach (var s in scopesArray)
-            scopes.Add(s.Value<string>() ?? "");
-    }
-    else if (scopesToken != null)
-    {
-        var scopeStr = scopesToken.Value<string>() ?? "";
-        scopes.AddRange(scopeStr.Split(',', StringSplitOptions.RemoveEmptyEntries));
-    }
-
-    if (scopes.Count == 0)
-        throw new ArgumentException("scopes required (array or comma-separated string)");
+    // Use SDK utilities for parameter parsing
+    var name = args.GetRequiredString("name");
+    var scopes = args.GetStringList("scopes", required: true);
+    var expiresInDays = args.GetOptionalInt("expiresInDays", 365);
 
     var expiresAt = DateTime.UtcNow.AddDays(expiresInDays);
     var result = await client.ApiKeys.CreateAsync(name, scopes, expiresAt);
 
-    var sb = new StringBuilder();
-    sb.AppendLine("API nøgle oprettet succesfuldt!");
-    sb.AppendLine();
-    sb.AppendLine($"@apikey[{result.ApiKey.Id}] {{");
-    sb.AppendLine($"  name: \"{result.ApiKey.Name}\"");
-    sb.AppendLine($"  prefix: \"{result.ApiKey.KeyHint}\"");
-    sb.AppendLine("}");
-    sb.AppendLine();
-    sb.AppendLine("🔑 VIGTIG: Gem denne nøgle sikkert - den vises kun én gang:");
-    sb.AppendLine();
-    sb.AppendLine(result.PlainKey);
-    return sb.ToString();
+    return ResponseFormatter.Create()
+        .Success("API nøgle oprettet succesfuldt!")
+        .Line()
+        .Entity("apikey", result.ApiKey.Id)
+            .PropString("name", result.ApiKey.Name)
+            .PropString("prefix", result.ApiKey.KeyHint)
+        .EndEntity()
+        .Warning("Gem denne nøgle sikkert - den vises kun én gang:")
+        .Line()
+        .Line(result.PlainKey)
+        .ToString();
 });
 
 server.RegisterTool("RevokeApiKey", async (args) =>
 {
-    var apiKeyId = args["apiKeyId"]?.Value<int>() ?? throw new ArgumentException("apiKeyId required");
+    var apiKeyId = args.GetRequiredInt("apiKeyId");
     await client.ApiKeys.DeactivateAsync(apiKeyId);
-    return $"API nøgle med ID {apiKeyId} er blevet deaktiveret.";
+    return ResponseFormatter.DeletedDa("API nøgle", apiKeyId);
 });
 
 // ----------------------------------------------------------------------
@@ -166,107 +144,99 @@ server.RegisterTool("GetDashboards", async (args) =>
 {
     var dashboards = await client.Dashboards.GetAllAsync();
 
-    var sb = new StringBuilder();
-    sb.AppendLine($"Der er {dashboards.Count} dashboards:");
-    sb.AppendLine();
-
-    foreach (var d in dashboards)
-    {
-        sb.AppendLine($"@dashboard[{d.Id}] {{");
-        sb.AppendLine($"  name: \"{d.Name}\"");
-        sb.AppendLine($"  description: \"{d.Description ?? ""}\"");
-        sb.AppendLine($"  widgetCount: {d.WidgetCount}");
-        sb.AppendLine($"  isDefault: {d.IsDefault}");
-        sb.AppendLine($"  scope: \"{d.Scope}\"");
-        sb.AppendLine("}");
-        sb.AppendLine();
-    }
-    return sb.ToString();
+    return ResponseFormatter.Create()
+        .CountHeaderDa(dashboards.Count, "dashboard", "dashboards")
+        .EntityList("dashboard", dashboards, d => d.Id, (f, d) =>
+        {
+            f.PropString("name", d.Name)
+             .PropStringIfNotEmpty("description", d.Description)
+             .Prop("widgetCount", d.WidgetCount)
+             .PropBool("isDefault", d.IsDefault)
+             .PropString("scope", d.Scope.ToString());
+        })
+        .ToString();
 });
 
 server.RegisterTool("GetDashboardDetails", async (args) =>
 {
-    var dashboardId = args["dashboardId"]?.Value<int>() ?? throw new ArgumentException("dashboardId required");
+    var dashboardId = args.GetRequiredInt("dashboardId");
     var dashboard = await client.Dashboards.GetAsync(dashboardId);
 
-    var sb = new StringBuilder();
-    sb.AppendLine($"@dashboard[{dashboard.Id}] {{");
-    sb.AppendLine($"  name: \"{dashboard.Name}\"");
-    sb.AppendLine($"  description: \"{dashboard.Description ?? ""}\"");
-    sb.AppendLine($"  isDefault: {dashboard.IsDefault}");
-    sb.AppendLine($"  theme: \"{dashboard.Theme ?? "light"}\"");
-    sb.AppendLine($"  refreshInterval: {dashboard.RefreshIntervalSeconds ?? 0}");
-    sb.AppendLine($"  scope: \"{dashboard.Scope}\"");
-    sb.AppendLine();
-    sb.AppendLine($"  widgets: [{dashboard.Widgets.Count}] {{");
+    var f = ResponseFormatter.Create()
+        .Entity("dashboard", dashboard.Id)
+            .PropString("name", dashboard.Name)
+            .PropStringIfNotEmpty("description", dashboard.Description)
+            .PropBool("isDefault", dashboard.IsDefault)
+            .PropString("theme", dashboard.Theme ?? "light")
+            .Prop("refreshInterval", dashboard.RefreshIntervalSeconds ?? 0)
+            .PropString("scope", dashboard.Scope.ToString())
+            .Line()
+            .PropCount("widgets", dashboard.Widgets.Count);
+
     foreach (var w in dashboard.Widgets)
     {
-        sb.AppendLine($"    @widget[{w.Id}] {{");
-        sb.AppendLine($"      type: \"{w.TypeName}\"");
-        sb.AppendLine($"      title: \"{w.Title}\"");
-        sb.AppendLine($"      position: ({w.GridX}, {w.GridY})");
-        sb.AppendLine($"      size: {w.GridWidth}x{w.GridHeight}");
-        sb.AppendLine($"    }}");
+        f.NestedEntity("widget", w.Id)
+            .PropString("type", w.TypeName)
+            .PropString("title", w.Title)
+            .Prop("position", $"({w.GridX}, {w.GridY})")
+            .Prop("size", $"{w.GridWidth}x{w.GridHeight}")
+        .EndNestedEntity();
     }
-    sb.AppendLine($"  }}");
-    sb.AppendLine("}");
-    return sb.ToString();
+
+    return f.EndPropCount().EndEntity().ToString();
 });
 
 server.RegisterTool("CreateDashboard", async (args) =>
 {
     var request = new CreateDashboardRequest
     {
-        Name = args["name"]?.Value<string>() ?? throw new ArgumentException("name required"),
-        Description = args["description"]?.Value<string>(),
-        Theme = args["theme"]?.Value<string>(),
-        RefreshIntervalSeconds = args["refreshIntervalSeconds"]?.Value<int?>(),
-        WorkspaceId = args["workspaceId"]?.Value<int?>(),
-        ProjectId = args["projectId"]?.Value<int?>()
+        Name = args.GetRequiredString("name"),
+        Description = args.GetOptionalString("description"),
+        Theme = args.GetOptionalString("theme"),
+        RefreshIntervalSeconds = args.GetOptionalIntOrNull("refreshIntervalSeconds"),
+        WorkspaceId = args.GetOptionalIntOrNull("workspaceId"),
+        ProjectId = args.GetOptionalIntOrNull("projectId"),
+        Scope = args.GetOptionalEnum("scope", DashboardScope.Personal)
     };
 
-    var scopeStr = args["scope"]?.Value<string>();
-    if (!string.IsNullOrEmpty(scopeStr) && Enum.TryParse<DashboardScope>(scopeStr, true, out var scope))
-        request.Scope = scope;
-
     var dashboard = await client.Dashboards.CreateAsync(request);
-    return $"Dashboard oprettet: @dashboard[{dashboard.Id}] \"{dashboard.Name}\"";
+    return ResponseFormatter.CreatedDa("Dashboard", dashboard.Id, dashboard.Name);
 });
 
 server.RegisterTool("UpdateDashboard", async (args) =>
 {
-    var dashboardId = args["dashboardId"]?.Value<int>() ?? throw new ArgumentException("dashboardId required");
+    var dashboardId = args.GetRequiredInt("dashboardId");
     var request = new UpdateDashboardRequest
     {
-        Name = args["name"]?.Value<string>(),
-        Description = args["description"]?.Value<string>(),
-        Theme = args["theme"]?.Value<string>(),
-        RefreshIntervalSeconds = args["refreshIntervalSeconds"]?.Value<int?>()
+        Name = args.GetOptionalString("name"),
+        Description = args.GetOptionalString("description"),
+        Theme = args.GetOptionalString("theme"),
+        RefreshIntervalSeconds = args.GetOptionalIntOrNull("refreshIntervalSeconds")
     };
     await client.Dashboards.UpdateAsync(dashboardId, request);
-    return $"Dashboard {dashboardId} opdateret.";
+    return ResponseFormatter.UpdatedDa("Dashboard", dashboardId);
 });
 
 server.RegisterTool("DeleteDashboard", async (args) =>
 {
-    var dashboardId = args["dashboardId"]?.Value<int>() ?? throw new ArgumentException("dashboardId required");
+    var dashboardId = args.GetRequiredInt("dashboardId");
     await client.Dashboards.DeleteAsync(dashboardId);
-    return $"Dashboard {dashboardId} slettet.";
+    return ResponseFormatter.DeletedDa("Dashboard", dashboardId);
 });
 
 server.RegisterTool("SetDefaultDashboard", async (args) =>
 {
-    var dashboardId = args["dashboardId"]?.Value<int>() ?? throw new ArgumentException("dashboardId required");
+    var dashboardId = args.GetRequiredInt("dashboardId");
     await client.Dashboards.SetDefaultAsync(dashboardId);
     return $"Dashboard {dashboardId} er nu sat som standard.";
 });
 
 server.RegisterTool("DuplicateDashboard", async (args) =>
 {
-    var dashboardId = args["dashboardId"]?.Value<int>() ?? throw new ArgumentException("dashboardId required");
-    var newName = args["newName"]?.Value<string>();
+    var dashboardId = args.GetRequiredInt("dashboardId");
+    var newName = args.GetOptionalString("newName");
     var dashboard = await client.Dashboards.DuplicateAsync(dashboardId, newName);
-    return $"Dashboard duplikeret: @dashboard[{dashboard.Id}] \"{dashboard.Name}\"";
+    return ResponseFormatter.CreatedDa("Dashboard", dashboard.Id, dashboard.Name);
 });
 
 // ----------------------------------------------------------------------
@@ -275,114 +245,110 @@ server.RegisterTool("DuplicateDashboard", async (args) =>
 
 server.RegisterTool("GetWidgets", async (args) =>
 {
-    var dashboardId = args["dashboardId"]?.Value<int>() ?? throw new ArgumentException("dashboardId required");
+    var dashboardId = args.GetRequiredInt("dashboardId");
     var widgets = await client.Dashboards.GetWidgetsAsync(dashboardId);
 
-    var sb = new StringBuilder();
-    sb.AppendLine($"Dashboard {dashboardId} har {widgets.Count} widgets:");
-    sb.AppendLine();
-
-    foreach (var w in widgets)
-    {
-        sb.AppendLine($"@widget[{w.Id}] {{");
-        sb.AppendLine($"  type: \"{w.TypeName}\"");
-        sb.AppendLine($"  title: \"{w.Title}\"");
-        sb.AppendLine($"  subtitle: \"{w.Subtitle ?? ""}\"");
-        sb.AppendLine($"  position: ({w.GridX}, {w.GridY})");
-        sb.AppendLine($"  size: {w.GridWidth}x{w.GridHeight}");
-        sb.AppendLine("}");
-        sb.AppendLine();
-    }
-    return sb.ToString();
+    return ResponseFormatter.Create()
+        .Header($"Dashboard {dashboardId} har {widgets.Count} widgets:")
+        .EntityList("widget", widgets, w => w.Id, (f, w) =>
+        {
+            f.PropString("type", w.TypeName)
+             .PropString("title", w.Title)
+             .PropStringIfNotEmpty("subtitle", w.Subtitle)
+             .Prop("position", $"({w.GridX}, {w.GridY})")
+             .Prop("size", $"{w.GridWidth}x{w.GridHeight}");
+        })
+        .ToString();
 });
 
 server.RegisterTool("GetWidgetDetails", async (args) =>
 {
-    var dashboardId = args["dashboardId"]?.Value<int>() ?? throw new ArgumentException("dashboardId required");
-    var widgetId = args["widgetId"]?.Value<int>() ?? throw new ArgumentException("widgetId required");
+    var dashboardId = args.GetRequiredInt("dashboardId");
+    var widgetId = args.GetRequiredInt("widgetId");
     var widget = await client.Dashboards.GetWidgetAsync(dashboardId, widgetId);
 
-    var sb = new StringBuilder();
-    sb.AppendLine($"@widget[{widget.Id}] {{");
-    sb.AppendLine($"  dashboardId: {dashboardId}");
-    sb.AppendLine($"  type: \"{widget.TypeName}\"");
-    sb.AppendLine($"  title: \"{widget.Title}\"");
-    sb.AppendLine($"  subtitle: \"{widget.Subtitle ?? ""}\"");
-    sb.AppendLine($"  icon: \"{widget.Icon ?? ""}\"");
-    sb.AppendLine($"  position: ({widget.GridX}, {widget.GridY})");
-    sb.AppendLine($"  size: {widget.GridWidth}x{widget.GridHeight}");
-    sb.AppendLine();
-    sb.AppendLine($"  config: {widget.Config ?? "{}"}");
-    sb.AppendLine($"  datasourceConfig: {widget.DatasourceConfig ?? "{}"}");
-    sb.AppendLine($"  styleConfig: {widget.StyleConfig ?? "{}"}");
-    sb.AppendLine("}");
-    return sb.ToString();
+    return ResponseFormatter.Create()
+        .Entity("widget", widget.Id)
+            .Prop("dashboardId", dashboardId)
+            .PropString("type", widget.TypeName)
+            .PropString("title", widget.Title)
+            .PropStringIfNotEmpty("subtitle", widget.Subtitle)
+            .PropStringIfNotEmpty("icon", widget.Icon)
+            .Prop("position", $"({widget.GridX}, {widget.GridY})")
+            .Prop("size", $"{widget.GridWidth}x{widget.GridHeight}")
+            .Line()
+            .Prop("config", widget.Config ?? "{}")
+            .Prop("datasourceConfig", widget.DatasourceConfig ?? "{}")
+            .Prop("styleConfig", widget.StyleConfig ?? "{}")
+        .EndEntity()
+        .ToString();
 });
 
 server.RegisterTool("CreateWidget", async (args) =>
 {
-    var dashboardId = args["dashboardId"]?.Value<int>() ?? throw new ArgumentException("dashboardId required");
+    var dashboardId = args.GetRequiredInt("dashboardId");
     var request = new CreateWidgetRequest
     {
-        Type = args["type"]?.Value<string>() ?? throw new ArgumentException("type required"),
-        Title = args["title"]?.Value<string>() ?? throw new ArgumentException("title required"),
-        Subtitle = args["subtitle"]?.Value<string>(),
-        Icon = args["icon"]?.Value<string>(),
-        GridX = args["gridX"]?.Value<int>() ?? 0,
-        GridY = args["gridY"]?.Value<int>() ?? 0,
-        GridWidth = args["gridWidth"]?.Value<int>() ?? 3,
-        GridHeight = args["gridHeight"]?.Value<int>() ?? 2,
+        Type = args.GetRequiredString("type"),
+        Title = args.GetRequiredString("title"),
+        Subtitle = args.GetOptionalString("subtitle"),
+        Icon = args.GetOptionalString("icon"),
+        GridX = args.GetOptionalInt("gridX", 0),
+        GridY = args.GetOptionalInt("gridY", 0),
+        GridWidth = args.GetOptionalInt("gridWidth", 3),
+        GridHeight = args.GetOptionalInt("gridHeight", 2),
         Config = args["config"],
         DatasourceConfig = args["datasourceConfig"]
     };
     var widget = await client.Dashboards.AddWidgetAsync(dashboardId, request);
-    return $"Widget oprettet: @widget[{widget.Id}] \"{widget.Title}\" ({widget.TypeName})";
+    return ResponseFormatter.CreatedDa("Widget", widget.Id, $"{widget.Title} ({widget.TypeName})");
 });
 
 server.RegisterTool("UpdateWidget", async (args) =>
 {
-    var dashboardId = args["dashboardId"]?.Value<int>() ?? throw new ArgumentException("dashboardId required");
-    var widgetId = args["widgetId"]?.Value<int>() ?? throw new ArgumentException("widgetId required");
+    var dashboardId = args.GetRequiredInt("dashboardId");
+    var widgetId = args.GetRequiredInt("widgetId");
     var request = new UpdateWidgetRequest
     {
-        Title = args["title"]?.Value<string>(),
-        Subtitle = args["subtitle"]?.Value<string>(),
-        Icon = args["icon"]?.Value<string>(),
-        GridX = args["gridX"]?.Value<int?>(),
-        GridY = args["gridY"]?.Value<int?>(),
-        GridWidth = args["gridWidth"]?.Value<int?>(),
-        GridHeight = args["gridHeight"]?.Value<int?>(),
+        Title = args.GetOptionalString("title"),
+        Subtitle = args.GetOptionalString("subtitle"),
+        Icon = args.GetOptionalString("icon"),
+        GridX = args.GetOptionalIntOrNull("gridX"),
+        GridY = args.GetOptionalIntOrNull("gridY"),
+        GridWidth = args.GetOptionalIntOrNull("gridWidth"),
+        GridHeight = args.GetOptionalIntOrNull("gridHeight"),
         Config = args["config"],
         DatasourceConfig = args["datasourceConfig"],
         StyleConfig = args["styleConfig"]
     };
     await client.Dashboards.UpdateWidgetAsync(dashboardId, widgetId, request);
-    return $"Widget {widgetId} opdateret.";
+    return ResponseFormatter.UpdatedDa("Widget", widgetId);
 });
 
 server.RegisterTool("DeleteWidget", async (args) =>
 {
-    var dashboardId = args["dashboardId"]?.Value<int>() ?? throw new ArgumentException("dashboardId required");
-    var widgetId = args["widgetId"]?.Value<int>() ?? throw new ArgumentException("widgetId required");
+    var dashboardId = args.GetRequiredInt("dashboardId");
+    var widgetId = args.GetRequiredInt("widgetId");
     await client.Dashboards.DeleteWidgetAsync(dashboardId, widgetId);
-    return $"Widget {widgetId} slettet fra dashboard {dashboardId}.";
+    return ResponseFormatter.DeletedDa("Widget", $"{widgetId} (fra dashboard {dashboardId})");
 });
 
 server.RegisterTool("UpdateWidgetLayout", async (args) =>
 {
-    var dashboardId = args["dashboardId"]?.Value<int>() ?? throw new ArgumentException("dashboardId required");
-    var layoutsArray = args["layouts"] as JArray ?? throw new ArgumentException("layouts required");
+    var dashboardId = args.GetRequiredInt("dashboardId");
+    var layoutsArray = args.GetArray("layouts", required: true)!;
 
     var layouts = new List<WidgetLayoutItem>();
     foreach (var item in layoutsArray)
     {
+        var itemObj = item as JObject ?? new JObject();
         layouts.Add(new WidgetLayoutItem
         {
-            WidgetId = item["widgetId"]?.Value<int>() ?? 0,
-            GridX = item["gridX"]?.Value<int>() ?? 0,
-            GridY = item["gridY"]?.Value<int>() ?? 0,
-            GridWidth = item["gridWidth"]?.Value<int>() ?? 3,
-            GridHeight = item["gridHeight"]?.Value<int>() ?? 2
+            WidgetId = itemObj.GetOptionalInt("widgetId", 0),
+            GridX = itemObj.GetOptionalInt("gridX", 0),
+            GridY = itemObj.GetOptionalInt("gridY", 0),
+            GridWidth = itemObj.GetOptionalInt("gridWidth", 3),
+            GridHeight = itemObj.GetOptionalInt("gridHeight", 2)
         });
     }
 
@@ -396,39 +362,39 @@ server.RegisterTool("UpdateWidgetLayout", async (args) =>
 
 server.RegisterTool("GetDatasourceEntities", async (args) =>
 {
-    var category = args["category"]?.Value<string>();
+    var category = args.GetOptionalString("category");
     var entities = category != null
         ? await client.Datasource.GetEntitiesByCategoryAsync(category)
         : await client.Datasource.GetEntitiesAsync();
 
-    var sb = new StringBuilder();
-    sb.AppendLine($"Tilgængelige entities ({entities.Count}):");
-    sb.AppendLine();
+    var f = ResponseFormatter.Create()
+        .CountHeader(entities.Count, "entity", "tilgængelige");
 
     var grouped = entities.GroupBy(e => e.Category ?? "Andet");
     foreach (var group in grouped)
     {
-        sb.AppendLine($"## {group.Key}");
+        f.Line($"## {group.Key}");
         foreach (var entity in group)
         {
-            sb.AppendLine($"  - {entity.Name}: {entity.DisplayName}");
+            f.Bullet($"{entity.Name}: {entity.DisplayName}");
         }
-        sb.AppendLine();
+        f.Line();
     }
-    return sb.ToString();
+    return f.ToString();
 });
 
 server.RegisterTool("GetEntitySchema", async (args) =>
 {
-    var entityName = args["entityName"]?.Value<string>() ?? throw new ArgumentException("entityName required");
+    var entityName = args.GetRequiredString("entityName");
     var schema = await client.Datasource.GetEntitySchemaAsync(entityName);
 
-    var sb = new StringBuilder();
-    sb.AppendLine($"@entity[{schema.Name}] {{");
-    sb.AppendLine($"  displayName: \"{schema.DisplayName}\"");
-    sb.AppendLine($"  category: \"{schema.Category}\"");
-    sb.AppendLine();
-    sb.AppendLine($"  fields: [{schema.Fields.Count}] {{");
+    var f = ResponseFormatter.Create()
+        .Entity("entity", schema.Name)
+            .PropString("displayName", schema.DisplayName)
+            .PropString("category", schema.Category)
+            .Line()
+            .PropCount("fields", schema.Fields.Count);
+
     foreach (var field in schema.Fields)
     {
         var flags = new List<string>();
@@ -436,33 +402,33 @@ server.RegisterTool("GetEntitySchema", async (args) =>
         if (field.IsSortable) flags.Add("sortable");
         if (field.IsGroupable) flags.Add("groupable");
         var flagStr = flags.Count > 0 ? $" [{string.Join(", ", flags)}]" : "";
-        sb.AppendLine($"    {field.Name} ({field.DataType}): \"{field.DisplayName}\"{flagStr}");
+        f.Line($"{field.Name} ({field.DataType}): \"{field.DisplayName}\"{flagStr}");
     }
-    sb.AppendLine($"  }}");
+    f.EndPropCount();
 
     if (schema.Relations.Count > 0)
     {
-        sb.AppendLine();
-        sb.AppendLine($"  relations: [{schema.Relations.Count}] {{");
+        f.Line()
+         .PropCount("relations", schema.Relations.Count);
         foreach (var rel in schema.Relations)
         {
-            sb.AppendLine($"    {rel.Name} -> {rel.TargetEntity} ({rel.RelationType})");
+            f.Line($"{rel.Name} -> {rel.TargetEntity} ({rel.RelationType})");
         }
-        sb.AppendLine($"  }}");
+        f.EndPropCount();
     }
-    sb.AppendLine("}");
-    return sb.ToString();
+
+    return f.EndEntity().ToString();
 });
 
 server.RegisterTool("ExecuteDatasourceQuery", async (args) =>
 {
-    var entity = args["entity"]?.Value<string>() ?? throw new ArgumentException("entity required");
+    var entity = args.GetRequiredString("entity");
 
     // Build query using SDK helper
     var query = client.Datasource.CreateQuery(entity);
     query = client.Datasource.SetPagination(query,
-        args["limit"]?.Value<int>() ?? 50,
-        args["offset"]?.Value<int>() ?? 0);
+        args.GetOptionalInt("limit", 50),
+        args.GetOptionalInt("offset", 0));
 
     // Add fields if specified
     if (args["fields"] is JArray fieldsArray)
@@ -552,8 +518,8 @@ server.RegisterTool("ExecuteDatasourceQuery", async (args) =>
 
 server.RegisterTool("PreviewDatasourceQuery", async (args) =>
 {
-    var entity = args["entity"]?.Value<string>() ?? throw new ArgumentException("entity required");
-    var maxRows = args["maxRows"]?.Value<int>() ?? 10;
+    var entity = args.GetRequiredString("entity");
+    var maxRows = args.GetOptionalInt("maxRows", 10);
 
     var query = client.Datasource.CreateQuery(entity);
     query = client.Datasource.SetPagination(query, maxRows, 0);
@@ -564,7 +530,7 @@ server.RegisterTool("PreviewDatasourceQuery", async (args) =>
 
 server.RegisterTool("ValidateDatasourceQuery", async (args) =>
 {
-    var entity = args["entity"]?.Value<string>() ?? throw new ArgumentException("entity required");
+    var entity = args.GetRequiredString("entity");
     var query = client.Datasource.CreateQuery(entity);
 
     var result = await client.Datasource.ValidateQueryAsync(query);
@@ -575,26 +541,20 @@ server.RegisterTool("ValidateDatasourceQuery", async (args) =>
     }
     else
     {
-        var sb = new StringBuilder();
-        sb.AppendLine("Query validation fejlede:");
-        foreach (var error in result.Errors)
-        {
-            sb.AppendLine($"  - {error}");
-        }
-        return sb.ToString();
+        return ResponseFormatter.Create()
+            .Header("Query validation fejlede:")
+            .ForEach(result.Errors, (f, error) => f.Bullet(error))
+            .ToString();
     }
 });
 
 server.RegisterTool("GetDatasourceCategories", async (args) =>
 {
     var categories = await client.Datasource.GetCategoriesAsync();
-    var sb = new StringBuilder();
-    sb.AppendLine("Tilgængelige entity kategorier:");
-    foreach (var cat in categories)
-    {
-        sb.AppendLine($"  - {cat}");
-    }
-    return sb.ToString();
+    return ResponseFormatter.Create()
+        .Header("Tilgængelige entity kategorier:")
+        .ForEach(categories, (f, cat) => f.Bullet(cat))
+        .ToString();
 });
 
 // ----------------------------------------------------------------------
@@ -603,9 +563,9 @@ server.RegisterTool("GetDatasourceCategories", async (args) =>
 
 server.RegisterTool("GetTasks", async (args) =>
 {
-    var projectId = args["projectId"]?.Value<int?>();
-    var includeCompleted = args["includeCompleted"]?.Value<bool>() ?? false;
-    var limit = args["limit"]?.Value<int>() ?? 50;
+    var projectId = args.GetOptionalIntOrNull("projectId");
+    var includeCompleted = args.GetOptionalBool("includeCompleted", false);
+    var limit = args.GetOptionalInt("limit", 50);
 
     List<Served.SDK.Models.Tasks.TaskSummary> tasks;
     if (projectId.HasValue)
@@ -623,112 +583,94 @@ server.RegisterTool("GetTasks", async (args) =>
         tasks = await client.Tasks.GetAllAsync(query);
     }
 
-    var sb = new StringBuilder();
-    sb.AppendLine($"Fundet {tasks.Count} opgaver:");
-    sb.AppendLine();
-
-    foreach (var t in tasks)
-    {
-        sb.AppendLine($"@task[{t.Id}] {{");
-        sb.AppendLine($"  name: \"{t.Name}\"");
-        sb.AppendLine($"  taskNo: \"{t.TaskNo ?? ""}\"");
-        sb.AppendLine($"  projectId: {t.ProjectId}");
-        sb.AppendLine($"  status: \"{t.Status}\"");
-        sb.AppendLine($"  dueDate: \"{t.DueDate?.ToString("yyyy-MM-dd") ?? ""}\"");
-        sb.AppendLine($"  isCompleted: {t.IsCompleted}");
-        sb.AppendLine("}");
-        sb.AppendLine();
-    }
-    return sb.ToString();
+    return ResponseFormatter.Create()
+        .CountHeaderDa(tasks.Count, "opgave", "opgaver")
+        .EntityList("task", tasks, t => t.Id, (f, t) =>
+        {
+            f.PropString("name", t.Name)
+             .PropStringIfNotEmpty("taskNo", t.TaskNo)
+             .Prop("projectId", t.ProjectId)
+             .PropString("status", t.Status.ToString())
+             .PropDate("dueDate", t.DueDate)
+             .PropBool("isCompleted", t.IsCompleted);
+        })
+        .ToString();
 });
 
 server.RegisterTool("GetTaskDetails", async (args) =>
 {
-    var taskId = args["taskId"]?.Value<int>() ?? throw new ArgumentException("taskId required");
+    var taskId = args.GetRequiredInt("taskId");
     var task = await client.Tasks.GetAsync(taskId);
 
-    var sb = new StringBuilder();
-    sb.AppendLine($"@task[{task.Id}] {{");
-    sb.AppendLine($"  name: \"{task.Name}\"");
-    sb.AppendLine($"  taskNo: \"{task.TaskNo ?? ""}\"");
-    sb.AppendLine($"  description: \"{task.Description ?? ""}\"");
-    sb.AppendLine($"  projectId: {task.ProjectId}");
-    sb.AppendLine($"  projectName: \"{task.ProjectName ?? ""}\"");
-    sb.AppendLine($"  status: \"{task.Status}\"");
-    sb.AppendLine($"  priority: \"{task.Priority}\"");
-    sb.AppendLine($"  assignedTo: {task.AssignedTo?.ToString() ?? "null"}");
-    sb.AppendLine($"  dueDate: \"{task.DueDate?.ToString("yyyy-MM-dd") ?? ""}\"");
-    sb.AppendLine($"  estimatedHours: {task.EstimatedHours?.ToString() ?? "null"}");
-    sb.AppendLine($"  progress: {task.Progress}");
-    sb.AppendLine($"  isCompleted: {task.IsCompleted}");
-    sb.AppendLine("}");
-    return sb.ToString();
+    return ResponseFormatter.Create()
+        .Entity("task", task.Id)
+            .PropString("name", task.Name)
+            .PropStringIfNotEmpty("taskNo", task.TaskNo)
+            .PropStringIfNotEmpty("description", task.Description)
+            .Prop("projectId", task.ProjectId)
+            .PropStringIfNotEmpty("projectName", task.ProjectName)
+            .PropString("status", task.Status.ToString())
+            .PropString("priority", task.Priority?.ToString() ?? "Normal")
+            .PropIfNotEmpty("assignedTo", task.AssignedTo)
+            .PropDate("dueDate", task.DueDate)
+            .PropIfNotEmpty("estimatedHours", task.EstimatedHours)
+            .Prop("progress", task.Progress)
+            .PropBool("isCompleted", task.IsCompleted)
+        .EndEntity()
+        .ToString();
 });
 
 server.RegisterTool("CreateTask", async (args) =>
 {
-    var priorityStr = args["priority"]?.Value<string>();
-    Served.SDK.Models.Tasks.TaskPriority? priority = null;
-    if (!string.IsNullOrEmpty(priorityStr) && Enum.TryParse<Served.SDK.Models.Tasks.TaskPriority>(priorityStr, true, out var p))
-        priority = p;
+    var priority = args.GetOptionalEnumOrNull<Served.SDK.Models.Tasks.TaskPriority>("priority");
 
     var request = new Served.SDK.Models.Tasks.CreateTaskRequest
     {
-        Name = args["name"]?.Value<string>() ?? throw new ArgumentException("name required"),
-        ProjectId = args["projectId"]?.Value<int>() ?? throw new ArgumentException("projectId required"),
-        Description = args["description"]?.Value<string>(),
-        AssignedTo = args["assignedTo"]?.Value<int?>(),
+        Name = args.GetRequiredString("name"),
+        ProjectId = args.GetRequiredInt("projectId"),
+        Description = args.GetOptionalString("description"),
+        AssignedTo = args.GetOptionalIntOrNull("assignedTo"),
         Priority = priority,
-        DueDate = args["dueDate"]?.Value<DateTime?>(),
+        DueDate = args.GetOptionalDateTime("dueDate"),
         EstimatedHours = args["estimatedHours"]?.Value<double?>()
     };
 
     var task = await client.Tasks.CreateAsync(request);
-    return $"Opgave oprettet: @task[{task.Id}] \"{task.Name}\"";
+    return ResponseFormatter.CreatedDa("Opgave", task.Id, task.Name);
 });
 
 server.RegisterTool("UpdateTask", async (args) =>
 {
-    var taskId = args["taskId"]?.Value<int>() ?? throw new ArgumentException("taskId required");
-
-    var statusStr = args["status"]?.Value<string>();
-    Served.SDK.Models.Tasks.TaskStatus? status = null;
-    if (!string.IsNullOrEmpty(statusStr) && Enum.TryParse<Served.SDK.Models.Tasks.TaskStatus>(statusStr, true, out var s))
-        status = s;
-
-    var priorityStr = args["priority"]?.Value<string>();
-    Served.SDK.Models.Tasks.TaskPriority? priority = null;
-    if (!string.IsNullOrEmpty(priorityStr) && Enum.TryParse<Served.SDK.Models.Tasks.TaskPriority>(priorityStr, true, out var p))
-        priority = p;
+    var taskId = args.GetRequiredInt("taskId");
+    var status = args.GetOptionalEnumOrNull<Served.SDK.Models.Tasks.TaskStatus>("status");
+    var priority = args.GetOptionalEnumOrNull<Served.SDK.Models.Tasks.TaskPriority>("priority");
 
     var request = new Served.SDK.Models.Tasks.UpdateTaskRequest
     {
-        Name = args["name"]?.Value<string>(),
-        Description = args["description"]?.Value<string>(),
+        Name = args.GetOptionalString("name"),
+        Description = args.GetOptionalString("description"),
         Status = status,
         Priority = priority,
-        AssignedTo = args["assignedTo"]?.Value<int?>(),
-        DueDate = args["dueDate"]?.Value<DateTime?>(),
+        AssignedTo = args.GetOptionalIntOrNull("assignedTo"),
+        DueDate = args.GetOptionalDateTime("dueDate"),
         EstimatedHours = args["estimatedHours"]?.Value<double?>(),
         Progress = args["progress"]?.Value<double?>()
     };
     await client.Tasks.UpdateAsync(taskId, request);
-    return $"Opgave {taskId} opdateret.";
+    return ResponseFormatter.UpdatedDa("Opgave", taskId);
 });
 
 server.RegisterTool("DeleteTask", async (args) =>
 {
-    var taskId = args["taskId"]?.Value<int>() ?? throw new ArgumentException("taskId required");
+    var taskId = args.GetRequiredInt("taskId");
     await client.Tasks.DeleteAsync(taskId);
-    return $"Opgave {taskId} slettet.";
+    return ResponseFormatter.DeletedDa("Opgave", taskId);
 });
 
 server.RegisterTool("UpdateTaskStatus", async (args) =>
 {
-    var taskId = args["taskId"]?.Value<int>() ?? throw new ArgumentException("taskId required");
-    var statusStr = args["status"]?.Value<string>() ?? throw new ArgumentException("status required");
-    if (!Enum.TryParse<Served.SDK.Models.Tasks.TaskStatus>(statusStr, true, out var status))
-        throw new ArgumentException($"Invalid status: {statusStr}. Valid values: New, InProgress, Completed, OnHold, Cancelled");
+    var taskId = args.GetRequiredInt("taskId");
+    var status = args.GetRequiredEnum<Served.SDK.Models.Tasks.TaskStatus>("status");
     var request = new Served.SDK.Models.Tasks.UpdateTaskStatusRequest { Status = status };
     await client.Tasks.UpdateStatusAsync(taskId, request);
     return $"Status for opgave {taskId} ændret til '{status}'.";
@@ -740,10 +682,10 @@ server.RegisterTool("UpdateTaskStatus", async (args) =>
 
 server.RegisterTool("GetTimeRegistrations", async (args) =>
 {
-    var startDate = args["startDate"]?.Value<DateTime?>();
-    var endDate = args["endDate"]?.Value<DateTime?>();
-    var projectId = args["projectId"]?.Value<int?>();
-    var limit = args["limit"]?.Value<int>() ?? 50;
+    var startDate = args.GetOptionalDateTime("startDate");
+    var endDate = args.GetOptionalDateTime("endDate");
+    var projectId = args.GetOptionalIntOrNull("projectId");
+    var limit = args.GetOptionalInt("limit", 50);
 
     List<Served.SDK.Models.TimeRegistration.TimeRegistrationDetail> registrations;
 
@@ -761,68 +703,64 @@ server.RegisterTool("GetTimeRegistrations", async (args) =>
         registrations = await client.TimeRegistrations.GetAllAsync(query);
     }
 
-    var sb = new StringBuilder();
-    sb.AppendLine($"Fundet {registrations.Count} tidsregistreringer:");
-    sb.AppendLine();
-
-    foreach (var r in registrations)
-    {
-        sb.AppendLine($"@timereg[{r.Id}] {{");
-        sb.AppendLine($"  date: \"{r.Date.ToString("yyyy-MM-dd")}\"");
-        sb.AppendLine($"  hours: {(r.Hours ?? 0):F2}");
-        sb.AppendLine($"  projectId: {r.ProjectId}");
-        sb.AppendLine($"  taskId: {r.TaskId?.ToString() ?? "null"}");
-        sb.AppendLine($"  comment: \"{r.Comment ?? ""}\"");
-        sb.AppendLine($"  billable: {r.Billable}");
-        sb.AppendLine("}");
-        sb.AppendLine();
-    }
-    return sb.ToString();
+    return ResponseFormatter.Create()
+        .CountHeaderDa(registrations.Count, "tidsregistrering", "tidsregistreringer")
+        .EntityList("timereg", registrations, r => r.Id, (f, r) =>
+        {
+            f.PropDate("date", r.Date)
+             .Prop("hours", $"{(r.Hours ?? 0):F2}")
+             .Prop("projectId", r.ProjectId)
+             .PropIfNotEmpty("taskId", r.TaskId)
+             .PropStringIfNotEmpty("comment", r.Comment)
+             .PropBool("billable", r.Billable);
+        })
+        .ToString();
 });
 
 server.RegisterTool("CreateTimeRegistration", async (args) =>
 {
-    var start = args["start"]?.Value<DateTime?>() ?? args["date"]?.Value<DateTime?>() ?? DateTime.Today;
-    var end = args["end"]?.Value<DateTime?>() ?? start.AddHours(1);
-    var minutes = args["minutes"]?.Value<int>() ?? (int)((args["hours"]?.Value<double>() ?? 1) * 60);
-    var billable = args["billable"]?.Value<bool>() ?? true;
+    var start = args.GetOptionalDateTime("start") ?? args.GetOptionalDateTime("date") ?? DateTime.Today;
+    var end = args.GetOptionalDateTime("end") ?? start.AddHours(1);
+    var hours = args["hours"]?.Value<double>() ?? 1;
+    var minutes = args.GetOptionalIntOrNull("minutes") ?? (int)(hours * 60);
+    var billable = args.GetOptionalBool("billable", true);
 
     var request = new Served.SDK.Models.TimeRegistration.CreateTimeRegistrationRequest
     {
-        ProjectId = args["projectId"]?.Value<int>(),
-        TaskId = args["taskId"]?.Value<int?>(),
+        ProjectId = args.GetOptionalIntOrNull("projectId"),
+        TaskId = args.GetOptionalIntOrNull("taskId"),
         Start = start,
         End = end,
         Minutes = minutes,
-        Description = args["description"]?.Value<string>(),
+        Description = args.GetOptionalString("description"),
         Billable = billable
     };
 
     var reg = await client.TimeRegistrations.CreateAsync(request);
-    return $"Tidsregistrering oprettet: @timereg[{reg.Id}] ({reg.Hours:F2} timer)";
+    return ResponseFormatter.CreatedDa("Tidsregistrering", reg.Id, $"{reg.Hours:F2} timer");
 });
 
 server.RegisterTool("UpdateTimeRegistration", async (args) =>
 {
-    var id = args["id"]?.Value<int>() ?? throw new ArgumentException("id required");
+    var id = args.GetRequiredInt("id");
     var request = new Served.SDK.Models.TimeRegistration.UpdateTimeRegistrationRequest
     {
-        TaskId = args["taskId"]?.Value<int?>(),
-        ProjectId = args["projectId"]?.Value<int?>(),
-        Start = args["start"]?.Value<DateTime?>(),
-        End = args["end"]?.Value<DateTime?>(),
-        Description = args["description"]?.Value<string>(),
+        TaskId = args.GetOptionalIntOrNull("taskId"),
+        ProjectId = args.GetOptionalIntOrNull("projectId"),
+        Start = args.GetOptionalDateTime("start"),
+        End = args.GetOptionalDateTime("end"),
+        Description = args.GetOptionalString("description"),
         Billable = args["billable"]?.Value<bool?>()
     };
     await client.TimeRegistrations.UpdateAsync(id, request);
-    return $"Tidsregistrering {id} opdateret.";
+    return ResponseFormatter.UpdatedDa("Tidsregistrering", id);
 });
 
 server.RegisterTool("DeleteTimeRegistration", async (args) =>
 {
-    var id = args["id"]?.Value<int>() ?? throw new ArgumentException("id required");
+    var id = args.GetRequiredInt("id");
     await client.TimeRegistrations.DeleteAsync(id);
-    return $"Tidsregistrering {id} slettet.";
+    return ResponseFormatter.DeletedDa("Tidsregistrering", id);
 });
 
 // ----------------------------------------------------------------------
@@ -831,8 +769,8 @@ server.RegisterTool("DeleteTimeRegistration", async (args) =>
 
 server.RegisterTool("GetCustomers", async (args) =>
 {
-    var search = args["search"]?.Value<string>();
-    var limit = args["limit"]?.Value<int>() ?? 50;
+    var search = args.GetOptionalString("search");
+    var limit = args.GetOptionalInt("limit", 50);
 
     List<Served.SDK.Models.Customers.CustomerSummary> customers;
     if (!string.IsNullOrEmpty(search))
@@ -845,44 +783,39 @@ server.RegisterTool("GetCustomers", async (args) =>
         customers = await client.Customers.GetAllAsync(query);
     }
 
-    var sb = new StringBuilder();
-    sb.AppendLine($"Fundet {customers.Count} kunder:");
-    sb.AppendLine();
-
-    foreach (var c in customers)
-    {
-        sb.AppendLine($"@customer[{c.Id}] {{");
-        sb.AppendLine($"  name: \"{c.Name}\"");
-        sb.AppendLine($"  customerNo: \"{c.CustomerNo ?? ""}\"");
-        sb.AppendLine($"  email: \"{c.Email ?? ""}\"");
-        sb.AppendLine($"  phone: \"{c.Phone ?? ""}\"");
-        sb.AppendLine($"  isActive: {c.IsActive}");
-        sb.AppendLine("}");
-        sb.AppendLine();
-    }
-    return sb.ToString();
+    return ResponseFormatter.Create()
+        .CountHeaderDa(customers.Count, "kunde", "kunder")
+        .EntityList("customer", customers, c => c.Id, (f, c) =>
+        {
+            f.PropString("name", c.Name)
+             .PropStringIfNotEmpty("customerNo", c.CustomerNo)
+             .PropStringIfNotEmpty("email", c.Email)
+             .PropStringIfNotEmpty("phone", c.Phone)
+             .PropBool("isActive", c.IsActive);
+        })
+        .ToString();
 });
 
 server.RegisterTool("GetCustomerDetails", async (args) =>
 {
-    var customerId = args["customerId"]?.Value<int>() ?? throw new ArgumentException("customerId required");
+    var customerId = args.GetRequiredInt("customerId");
     var customer = await client.Customers.GetAsync(customerId);
 
-    var sb = new StringBuilder();
-    sb.AppendLine($"@customer[{customer.Id}] {{");
-    sb.AppendLine($"  name: \"{customer.Name}\"");
-    sb.AppendLine($"  customerNo: \"{customer.CustomerNo ?? ""}\"");
-    sb.AppendLine($"  email: \"{customer.Email ?? ""}\"");
-    sb.AppendLine($"  phone: \"{customer.Phone ?? ""}\"");
-    sb.AppendLine($"  website: \"{customer.Website ?? ""}\"");
-    sb.AppendLine($"  vatNumber: \"{customer.VatNumber ?? ""}\"");
-    sb.AppendLine($"  address: \"{customer.Address ?? ""}\"");
-    sb.AppendLine($"  city: \"{customer.City ?? ""}\"");
-    sb.AppendLine($"  postalCode: \"{customer.PostalCode ?? ""}\"");
-    sb.AppendLine($"  country: \"{customer.Country ?? ""}\"");
-    sb.AppendLine($"  isActive: {customer.IsActive}");
-    sb.AppendLine("}");
-    return sb.ToString();
+    return ResponseFormatter.Create()
+        .Entity("customer", customer.Id)
+            .PropString("name", customer.Name)
+            .PropStringIfNotEmpty("customerNo", customer.CustomerNo)
+            .PropStringIfNotEmpty("email", customer.Email)
+            .PropStringIfNotEmpty("phone", customer.Phone)
+            .PropStringIfNotEmpty("website", customer.Website)
+            .PropStringIfNotEmpty("vatNumber", customer.VatNumber)
+            .PropStringIfNotEmpty("address", customer.Address)
+            .PropStringIfNotEmpty("city", customer.City)
+            .PropStringIfNotEmpty("postalCode", customer.PostalCode)
+            .PropStringIfNotEmpty("country", customer.Country)
+            .PropBool("isActive", customer.IsActive)
+        .EndEntity()
+        .ToString();
 });
 
 // ----------------------------------------------------------------------
