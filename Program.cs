@@ -7282,5 +7282,277 @@ server.RegisterTool("CancelJob", async (args) =>
     };
 });
 
+// ----------------------------------------------------------------------
+// Supervisor Pattern Tools
+// Multi-agent orchestration for complex tasks
+// ----------------------------------------------------------------------
+
+server.RegisterTool("StartSupervisor", async (args) =>
+{
+    var agents = args["agents"]?.Value<string>() ?? "build,test,deploy,analysis";
+    var maxParallel = args["maxParallel"]?.Value<int>() ?? 4;
+
+    var response = await server.Http.PostAsync("/api/agents/supervisor/start", new
+    {
+        agents = agents.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries),
+        maxParallelAgents = maxParallel,
+        hostname = Environment.MachineName,
+        workingDirectory = Environment.CurrentDirectory
+    });
+
+    if (!response.IsSuccessStatusCode)
+    {
+        var error = await response.Content.ReadAsStringAsync();
+        return new { success = false, error };
+    }
+
+    var result = await response.Content.ReadFromJsonAsync<dynamic>();
+    return new
+    {
+        success = true,
+        sessionId = result?.sessionId,
+        agents = result?.agents,
+        message = "Supervisor session started. Ready to receive tasks."
+    };
+});
+
+server.RegisterTool("StopSupervisor", async (args) =>
+{
+    var graceful = args["graceful"]?.Value<bool>() ?? true;
+
+    var response = await server.Http.PostAsync("/api/agents/supervisor/stop", new { graceful });
+
+    if (!response.IsSuccessStatusCode)
+    {
+        var error = await response.Content.ReadAsStringAsync();
+        return new { success = false, error };
+    }
+
+    return new
+    {
+        success = true,
+        message = graceful ? "Supervisor stopped gracefully" : "Supervisor stopped immediately"
+    };
+});
+
+server.RegisterTool("GetSupervisorStatus", async (args) =>
+{
+    var response = await server.Http.GetAsync("/api/agents/supervisor/status");
+
+    if (!response.IsSuccessStatusCode)
+    {
+        return new { active = false, message = "No active supervisor session" };
+    }
+
+    var result = await response.Content.ReadFromJsonAsync<dynamic>();
+    return result ?? new { active = false };
+});
+
+server.RegisterTool("AssignSupervisorTask", async (args) =>
+{
+    var taskDescription = args["taskDescription"]?.Value<string>()
+        ?? throw new ArgumentException("taskDescription required");
+    var dryRun = args["dryRun"]?.Value<bool>() ?? false;
+
+    var response = await server.Http.PostAsync("/api/agents/supervisor/assign", new
+    {
+        taskDescription,
+        dryRun
+    });
+
+    if (!response.IsSuccessStatusCode)
+    {
+        var error = await response.Content.ReadAsStringAsync();
+        return new { success = false, error };
+    }
+
+    var result = await response.Content.ReadFromJsonAsync<dynamic>();
+    return new
+    {
+        success = true,
+        planId = result?.planId,
+        steps = result?.steps,
+        summary = result?.summary,
+        message = dryRun ? "Plan generated (dry run)" : "Task assigned and execution started"
+    };
+});
+
+server.RegisterTool("GetExecutionPlan", async (args) =>
+{
+    var planId = args["planId"]?.Value<string>();
+
+    var url = string.IsNullOrEmpty(planId)
+        ? "/api/agents/supervisor/plan/current"
+        : $"/api/agents/supervisor/plan/{planId}";
+
+    var response = await server.Http.GetAsync(url);
+
+    if (!response.IsSuccessStatusCode)
+    {
+        return new { success = false, message = "No active plan found" };
+    }
+
+    var result = await response.Content.ReadFromJsonAsync<dynamic>();
+    return result ?? new { success = false };
+});
+
+server.RegisterTool("ControlPlan", async (args) =>
+{
+    var action = args["action"]?.Value<string>()
+        ?? throw new ArgumentException("action required (pause/resume/cancel)");
+    var planId = args["planId"]?.Value<string>();
+
+    var response = await server.Http.PostAsync($"/api/agents/supervisor/plan/{action}", new { planId });
+
+    if (!response.IsSuccessStatusCode)
+    {
+        var error = await response.Content.ReadAsStringAsync();
+        return new { success = false, error };
+    }
+
+    return new
+    {
+        success = true,
+        action,
+        message = $"Plan {action} executed"
+    };
+});
+
+server.RegisterTool("SpawnSpecializedAgent", async (args) =>
+{
+    var role = args["role"]?.Value<string>()
+        ?? throw new ArgumentException("role required (build/test/deploy/analysis)");
+    var model = args["model"]?.Value<string>();
+    var customPromptPath = args["customPromptPath"]?.Value<string>();
+
+    var response = await server.Http.PostAsync("/api/agents/spawn", new
+    {
+        role,
+        model,
+        customPromptPath,
+        runInBackground = true
+    });
+
+    if (!response.IsSuccessStatusCode)
+    {
+        var error = await response.Content.ReadAsStringAsync();
+        return new { success = false, error };
+    }
+
+    var result = await response.Content.ReadFromJsonAsync<dynamic>();
+    return new
+    {
+        success = true,
+        agentId = result?.agentId,
+        role,
+        status = result?.status,
+        communicationChannel = result?.communicationChannel
+    };
+});
+
+server.RegisterTool("GetAgentStatus", async (args) =>
+{
+    var agentId = args["agentId"]?.Value<string>();
+
+    var url = string.IsNullOrEmpty(agentId)
+        ? "/api/agents/coordination"
+        : $"/api/agents/coordination/{agentId}";
+
+    var response = await server.Http.GetAsync(url);
+
+    if (!response.IsSuccessStatusCode)
+    {
+        var error = await response.Content.ReadAsStringAsync();
+        return new { success = false, error };
+    }
+
+    var result = await response.Content.ReadFromJsonAsync<dynamic>();
+    return result ?? new { };
+});
+
+server.RegisterTool("ControlAgent", async (args) =>
+{
+    var agentId = args["agentId"]?.Value<string>()
+        ?? throw new ArgumentException("agentId required");
+    var action = args["action"]?.Value<string>()
+        ?? throw new ArgumentException("action required (pause/resume/terminate)");
+    var force = args["force"]?.Value<bool>() ?? false;
+
+    var response = await server.Http.PostAsync($"/api/agents/{agentId}/{action}", new { force });
+
+    if (!response.IsSuccessStatusCode)
+    {
+        var error = await response.Content.ReadAsStringAsync();
+        return new { success = false, error };
+    }
+
+    return new
+    {
+        success = true,
+        agentId,
+        action,
+        message = $"Agent {action} executed"
+    };
+});
+
+server.RegisterTool("SendAgentMessage", async (args) =>
+{
+    var toAgentId = args["toAgentId"]?.Value<string>()
+        ?? throw new ArgumentException("toAgentId required");
+    var messageType = args["messageType"]?.Value<string>() ?? "Command";
+    var payload = args["payload"]?.ToString() ?? "{}";
+
+    var response = await server.Http.PostAsync("/api/agents/message", new
+    {
+        toAgentId,
+        messageType,
+        payload
+    });
+
+    if (!response.IsSuccessStatusCode)
+    {
+        var error = await response.Content.ReadAsStringAsync();
+        return new { success = false, error };
+    }
+
+    return new
+    {
+        success = true,
+        message = $"Message sent to agent {toAgentId}"
+    };
+});
+
+server.RegisterTool("ValidateAgentOutput", async (args) =>
+{
+    var agentId = args["agentId"]?.Value<string>()
+        ?? throw new ArgumentException("agentId required");
+    var stepId = args["stepId"]?.Value<string>()
+        ?? throw new ArgumentException("stepId required");
+    var output = args["output"]?.Value<string>() ?? "";
+
+    var response = await server.Http.PostAsync("/api/agents/validate", new
+    {
+        agentId,
+        stepId,
+        output
+    });
+
+    if (!response.IsSuccessStatusCode)
+    {
+        var error = await response.Content.ReadAsStringAsync();
+        return new { success = false, error };
+    }
+
+    var result = await response.Content.ReadFromJsonAsync<dynamic>();
+    return new
+    {
+        success = true,
+        validationStatus = result?.status,
+        checks = result?.checks,
+        warnings = result?.warnings,
+        errors = result?.errors
+    };
+});
+
 // Start Server
 await server.RunAsync();
