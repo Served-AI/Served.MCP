@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Net.Http.Json;
 using System.Text;
 using Newtonsoft.Json.Linq;
 using Served.MCP;
@@ -833,7 +834,7 @@ server.RegisterTool("GetActiveAgents", async (args) =>
     if (!string.IsNullOrEmpty(agentType)) criteria["agentType"] = agentType;
     if (isOnline.HasValue) criteria["isOnline"] = isOnline.Value;
 
-    var response = await server.Http.PostAsync("/api/agents/coordination/GetActiveAgents",
+    var response = await server.Http.PostAsJsonAsync("/api/agents/coordination/GetActiveAgents",
         new StringContent(criteria.ToString(), Encoding.UTF8, "application/json"));
 
     if (!response.IsSuccessStatusCode)
@@ -868,7 +869,7 @@ server.RegisterTool("GetAgentContext", async (args) =>
 {
     var agentId = args["agentId"]?.Value<int>() ?? throw new ArgumentException("agentId required");
 
-    var response = await server.Http.PostAsync($"/api/agents/coordination/GetAgentContext?agentId={agentId}",
+    var response = await server.Http.PostAsJsonAsync($"/api/agents/coordination/GetAgentContext?agentId={agentId}",
         new StringContent("{}", Encoding.UTF8, "application/json"));
 
     if (!response.IsSuccessStatusCode)
@@ -938,7 +939,7 @@ server.RegisterTool("SearchAgentActivity", async (args) =>
     var query = args["query"]?.Value<string>() ?? throw new ArgumentException("query required");
     var limit = args["limit"]?.Value<int>() ?? 20;
 
-    var response = await server.Http.PostAsync($"/api/agents/coordination/SearchActivity?query={Uri.EscapeDataString(query)}&limit={limit}",
+    var response = await server.Http.PostAsJsonAsync($"/api/agents/coordination/SearchActivity?query={Uri.EscapeDataString(query)}&limit={limit}",
         new StringContent("{}", Encoding.UTF8, "application/json"));
 
     if (!response.IsSuccessStatusCode)
@@ -965,7 +966,7 @@ server.RegisterTool("SearchAgentActivity", async (args) =>
 
 server.RegisterTool("GetCoordinationInfo", async (args) =>
 {
-    var response = await server.Http.PostAsync("/api/agents/coordination/GetCoordinationInfo",
+    var response = await server.Http.PostAsJsonAsync("/api/agents/coordination/GetCoordinationInfo",
         new StringContent("{}", Encoding.UTF8, "application/json"));
 
     if (!response.IsSuccessStatusCode)
@@ -1036,7 +1037,7 @@ server.RegisterTool("CoordinateWithAgent", async (args) =>
         ["reason"] = reason
     };
 
-    var response = await server.Http.PostAsync($"/api/agents/coordination/Coordinate?fromAgentId={fromAgentId}",
+    var response = await server.Http.PostAsJsonAsync($"/api/agents/coordination/Coordinate?fromAgentId={fromAgentId}",
         new StringContent(request.ToString(), Encoding.UTF8, "application/json"));
 
     if (!response.IsSuccessStatusCode)
@@ -1058,7 +1059,7 @@ server.RegisterTool("GetFilesInUse", async (args) =>
     var url = "/api/agents/coordination/GetFilesInUse";
     if (!string.IsNullOrEmpty(pathFilter)) url += $"?pathFilter={Uri.EscapeDataString(pathFilter)}";
 
-    var response = await server.Http.PostAsync(url,
+    var response = await server.Http.PostAsJsonAsync(url,
         new StringContent("{}", Encoding.UTF8, "application/json"));
 
     if (!response.IsSuccessStatusCode)
@@ -1083,7 +1084,7 @@ server.RegisterTool("GetFilesInUse", async (args) =>
 
 server.RegisterTool("DetectConflicts", async (args) =>
 {
-    var response = await server.Http.PostAsync("/api/agents/coordination/DetectConflicts",
+    var response = await server.Http.PostAsJsonAsync("/api/agents/coordination/DetectConflicts",
         new StringContent("{}", Encoding.UTF8, "application/json"));
 
     if (!response.IsSuccessStatusCode)
@@ -1234,7 +1235,7 @@ server.RegisterTool("TestIntegrationConnection", async (args) =>
 {
     var handlerId = args["handlerId"]?.Value<int>() ?? throw new ArgumentException("handlerId required");
 
-    var response = await server.Http.PostAsync($"/api/integrations/handlers/{handlerId}/test",
+    var response = await server.Http.PostAsJsonAsync($"/api/integrations/handlers/{handlerId}/test",
         new StringContent("{}", Encoding.UTF8, "application/json"));
 
     if (!response.IsSuccessStatusCode)
@@ -1365,7 +1366,7 @@ server.RegisterTool("ActivateIntegration", async (args) =>
         ["settings"] = settings
     };
 
-    var response = await server.Http.PostAsync("/api/integrations/activate",
+    var response = await server.Http.PostAsJsonAsync("/api/integrations/activate",
         new StringContent(request.ToString(), Encoding.UTF8, "application/json"));
 
     if (!response.IsSuccessStatusCode)
@@ -1391,7 +1392,7 @@ server.RegisterTool("DeactivateIntegration", async (args) =>
 {
     var handlerId = args["handlerId"]?.Value<int>() ?? throw new ArgumentException("handlerId required");
 
-    var response = await server.Http.PostAsync($"/api/integrations/handlers/{handlerId}/deactivate",
+    var response = await server.Http.PostAsJsonAsync($"/api/integrations/handlers/{handlerId}/deactivate",
         new StringContent("{}", Encoding.UTF8, "application/json"));
 
     if (!response.IsSuccessStatusCode)
@@ -1600,7 +1601,7 @@ server.RegisterTool("TestInfrastructureConnection", async (args) =>
 {
     var connectionId = args["connectionId"]?.Value<int>() ?? throw new ArgumentException("connectionId required");
 
-    var response = await server.Http.PostAsync($"/api/infrastructure/connections/{connectionId}/test",
+    var response = await server.Http.PostAsJsonAsync($"/api/infrastructure/connections/{connectionId}/test",
         new StringContent("{}", Encoding.UTF8, "application/json"));
 
     if (!response.IsSuccessStatusCode)
@@ -1631,7 +1632,7 @@ server.RegisterTool("SyncInfrastructureResources", async (args) =>
     var fullSync = args["fullSync"]?.Value<bool>() ?? false;
 
     var request = new JObject { ["fullSync"] = fullSync };
-    var response = await server.Http.PostAsync($"/api/infrastructure/connections/{connectionId}/sync",
+    var response = await server.Http.PostAsJsonAsync($"/api/infrastructure/connections/{connectionId}/sync",
         new StringContent(request.ToString(), Encoding.UTF8, "application/json"));
 
     if (!response.IsSuccessStatusCode)
@@ -1852,7 +1853,7 @@ server.RegisterTool("StartInfrastructureResource", async (args) =>
 {
     var resourceId = args["resourceId"]?.Value<int>() ?? throw new ArgumentException("resourceId required");
 
-    var response = await server.Http.PostAsync($"/api/infrastructure/resources/{resourceId}/start",
+    var response = await server.Http.PostAsJsonAsync($"/api/infrastructure/resources/{resourceId}/start",
         new StringContent("{}", Encoding.UTF8, "application/json"));
 
     if (!response.IsSuccessStatusCode)
@@ -1868,7 +1869,7 @@ server.RegisterTool("StopInfrastructureResource", async (args) =>
     var force = args["force"]?.Value<bool>() ?? false;
 
     var request = new JObject { ["force"] = force };
-    var response = await server.Http.PostAsync($"/api/infrastructure/resources/{resourceId}/stop",
+    var response = await server.Http.PostAsJsonAsync($"/api/infrastructure/resources/{resourceId}/stop",
         new StringContent(request.ToString(), Encoding.UTF8, "application/json"));
 
     if (!response.IsSuccessStatusCode)
@@ -1882,7 +1883,7 @@ server.RegisterTool("RebootInfrastructureResource", async (args) =>
 {
     var resourceId = args["resourceId"]?.Value<int>() ?? throw new ArgumentException("resourceId required");
 
-    var response = await server.Http.PostAsync($"/api/infrastructure/resources/{resourceId}/reboot",
+    var response = await server.Http.PostAsJsonAsync($"/api/infrastructure/resources/{resourceId}/reboot",
         new StringContent("{}", Encoding.UTF8, "application/json"));
 
     if (!response.IsSuccessStatusCode)
@@ -1956,7 +1957,7 @@ server.RegisterTool("CreateInfrastructureSnapshot", async (args) =>
         ["includeMemory"] = includeMemory
     };
 
-    var response = await server.Http.PostAsync($"/api/infrastructure/resources/{resourceId}/snapshots",
+    var response = await server.Http.PostAsJsonAsync($"/api/infrastructure/resources/{resourceId}/snapshots",
         new StringContent(request.ToString(), Encoding.UTF8, "application/json"));
 
     if (!response.IsSuccessStatusCode)
@@ -2010,7 +2011,7 @@ server.RegisterTool("RestoreInfrastructureSnapshot", async (args) =>
         ["startAfterRestore"] = startAfterRestore
     };
 
-    var response = await server.Http.PostAsync($"/api/infrastructure/resources/{resourceId}/snapshots/restore",
+    var response = await server.Http.PostAsJsonAsync($"/api/infrastructure/resources/{resourceId}/snapshots/restore",
         new StringContent(request.ToString(), Encoding.UTF8, "application/json"));
 
     if (!response.IsSuccessStatusCode)
@@ -2026,7 +2027,7 @@ server.RegisterTool("LinkResourceToProject", async (args) =>
     var projectId = args["projectId"]?.Value<int>() ?? throw new ArgumentException("projectId required");
 
     var request = new JObject { ["projectId"] = projectId };
-    var response = await server.Http.PostAsync($"/api/infrastructure/resources/{resourceId}/link",
+    var response = await server.Http.PostAsJsonAsync($"/api/infrastructure/resources/{resourceId}/link",
         new StringContent(request.ToString(), Encoding.UTF8, "application/json"));
 
     if (!response.IsSuccessStatusCode)
@@ -2049,7 +2050,7 @@ server.RegisterTool("LinkResourceToCustomer", async (args) =>
         ["monthlyCost"] = monthlyCost
     };
 
-    var response = await server.Http.PostAsync($"/api/infrastructure/resources/{resourceId}/link",
+    var response = await server.Http.PostAsJsonAsync($"/api/infrastructure/resources/{resourceId}/link",
         new StringContent(request.ToString(), Encoding.UTF8, "application/json"));
 
     if (!response.IsSuccessStatusCode)
@@ -2650,7 +2651,7 @@ server.RegisterTool("SendAgentTask", async (args) =>
     };
 
     var content = new StringContent(payload.ToString(), Encoding.UTF8, "application/json");
-    var response = await server.Http.PostAsync("/api/devops/agents/tasks", content);
+    var response = await server.Http.PostAsJsonAsync("/api/devops/agents/tasks", content);
 
     if (!response.IsSuccessStatusCode)
         throw new Exception($"Failed to send task: {response.StatusCode}");
@@ -2681,6 +2682,135 @@ server.RegisterTool("ResumeAgent", async (args) =>
     return $"▶️ Agent {agentId} resumed";
 });
 
+// ----------------------------------------------------------------------
+// Kill Your Darlings - Agent Lifecycle Management
+// "Kill your darlings" - Steve Jobs: If it's not essential, eliminate it.
+// ----------------------------------------------------------------------
+
+server.RegisterTool("KillAgent", async (args) =>
+{
+    var agentId = args["agentId"]?.Value<string>() ?? throw new ArgumentException("agentId required");
+    var force = args["force"]?.Value<bool>() ?? false;
+    var timeout = args["timeoutSeconds"]?.Value<int>() ?? 30;
+
+    var queryParams = $"?force={force}&timeoutSeconds={timeout}";
+    var response = await server.Http.PostAsync($"/api/cli-agents/Kill{queryParams}&agentId={agentId}", null);
+
+    if (!response.IsSuccessStatusCode)
+        throw new Exception($"Failed to kill agent: {response.StatusCode}");
+
+    var result = JObject.Parse(await response.Content.ReadAsStringAsync());
+    var method = result["method"]?.Value<string>() ?? "unknown";
+    var duration = result["durationMs"]?.Value<long>() ?? 0;
+
+    return $"💀 Agent {agentId} terminated ({method}) in {duration}ms";
+});
+
+server.RegisterTool("KillStaleAgents", async (args) =>
+{
+    var thresholdMinutes = args["staleThresholdMinutes"]?.Value<int>() ?? 5;
+    var force = args["force"]?.Value<bool>() ?? false;
+
+    var queryParams = $"?staleThresholdMinutes={thresholdMinutes}&force={force}";
+    var response = await server.Http.PostAsync($"/api/cli-agents/KillStale{queryParams}", null);
+
+    if (!response.IsSuccessStatusCode)
+        throw new Exception($"Failed to kill stale agents: {response.StatusCode}");
+
+    var result = JObject.Parse(await response.Content.ReadAsStringAsync());
+    var killed = result["killedCount"]?.Value<int>() ?? 0;
+    var failed = result["failedCount"]?.Value<int>() ?? 0;
+
+    var sb = new StringBuilder();
+    sb.AppendLine("# Kill Stale Agents Result");
+    sb.AppendLine();
+    sb.AppendLine($"💀 Killed: {killed} agents");
+    if (failed > 0)
+        sb.AppendLine($"❌ Failed: {failed} agents");
+    sb.AppendLine($"📊 Threshold: {thresholdMinutes} minutes without heartbeat");
+
+    return sb.ToString();
+});
+
+server.RegisterTool("KillOverBudgetAgents", async (args) =>
+{
+    var force = args["force"]?.Value<bool>() ?? false;
+
+    var queryParams = $"?force={force}";
+    var response = await server.Http.PostAsync($"/api/cli-agents/KillOverBudget{queryParams}", null);
+
+    if (!response.IsSuccessStatusCode)
+        throw new Exception($"Failed to kill over-budget agents: {response.StatusCode}");
+
+    var result = JObject.Parse(await response.Content.ReadAsStringAsync());
+    var killed = result["killedCount"]?.Value<int>() ?? 0;
+
+    return $"💰 Killed {killed} over-budget agents";
+});
+
+server.RegisterTool("KillAgentsByType", async (args) =>
+{
+    var agentType = args["agentType"]?.Value<string>() ?? throw new ArgumentException("agentType required");
+    var force = args["force"]?.Value<bool>() ?? false;
+
+    var queryParams = $"?agentType={agentType}&force={force}";
+    var response = await server.Http.PostAsync($"/api/cli-agents/KillByType{queryParams}", null);
+
+    if (!response.IsSuccessStatusCode)
+        throw new Exception($"Failed to kill agents by type: {response.StatusCode}");
+
+    var result = JObject.Parse(await response.Content.ReadAsStringAsync());
+    var killed = result["killedCount"]?.Value<int>() ?? 0;
+
+    return $"💀 Killed {killed} {agentType} agents";
+});
+
+server.RegisterTool("GetKillStatus", async (args) =>
+{
+    var response = await server.Http.PostAsync("/api/cli-agents/GetKillStatus", null);
+
+    if (!response.IsSuccessStatusCode)
+        throw new Exception($"Failed to get kill status: {response.StatusCode}");
+
+    var result = JObject.Parse(await response.Content.ReadAsStringAsync());
+
+    var sb = new StringBuilder();
+    sb.AppendLine("# Kill Status - Agent Overview");
+    sb.AppendLine();
+    sb.AppendLine($"📊 Total Agents: {result["totalAgents"]}");
+    sb.AppendLine($"✅ Active: {result["activeCount"]}");
+    sb.AppendLine($"⚠️ Stale: {result["staleCount"]}");
+    sb.AppendLine($"💰 Over Budget: {result["overBudgetCount"]}");
+    sb.AppendLine();
+
+    var byType = result["byType"] as JObject;
+    if (byType != null && byType.Count > 0)
+    {
+        sb.AppendLine("## By Type:");
+        foreach (var prop in byType.Properties())
+        {
+            sb.AppendLine($"  - {prop.Name}: {prop.Value}");
+        }
+        sb.AppendLine();
+    }
+
+    var agents = result["agents"] as JArray;
+    if (agents != null && agents.Count > 0)
+    {
+        sb.AppendLine("## Agent Details:");
+        foreach (var agent in agents)
+        {
+            var status = agent["isOnline"]?.Value<bool>() == true ? "🟢" : "🔴";
+            var stale = agent["isStale"]?.Value<bool>() == true ? " [STALE]" : "";
+            var overBudget = agent["isOverBudget"]?.Value<bool>() == true ? " [OVER BUDGET]" : "";
+            sb.AppendLine($"  {status} {agent["name"]} ({agent["agentType"]}){stale}{overBudget}");
+            sb.AppendLine($"     ID: {agent["id"]}, Cost: ${agent["totalCost"]:F2}");
+        }
+    }
+
+    return sb.ToString();
+});
+
 server.RegisterTool("WakeAgent", async (args) =>
 {
     var agentType = args["agentType"]?.Value<string>() ?? throw new ArgumentException("agentType required");
@@ -2697,7 +2827,7 @@ server.RegisterTool("WakeAgent", async (args) =>
         payload["repository"] = repository;
 
     var content = new StringContent(payload.ToString(), Encoding.UTF8, "application/json");
-    var response = await server.Http.PostAsync("/api/devops/agents/wake", content);
+    var response = await server.Http.PostAsJsonAsync("/api/devops/agents/wake", content);
 
     if (!response.IsSuccessStatusCode)
         throw new Exception($"Failed to wake agent: {response.StatusCode}");
@@ -2900,7 +3030,7 @@ server.RegisterTool("ExecuteWorkflow", async (args) =>
         payload["variables"] = variables;
 
     var content = new StringContent(payload.ToString(), Encoding.UTF8, "application/json");
-    var response = await server.Http.PostAsync($"/api/automation/workflows/{workflowId}/execute", content);
+    var response = await server.Http.PostAsJsonAsync($"/api/automation/workflows/{workflowId}/execute", content);
 
     if (!response.IsSuccessStatusCode)
         throw new Exception($"Failed to execute workflow: {response.StatusCode}");
@@ -3112,7 +3242,7 @@ server.RegisterTool("AgentPlanGet", async (args) =>
 {
     var agentId = args["agentId"]?.Value<int>() ?? throw new ArgumentException("agentId required");
 
-    var response = await server.Http.PostAsync($"/api/agents/coordination/GetAgentContext?agentId={agentId}",
+    var response = await server.Http.PostAsJsonAsync($"/api/agents/coordination/GetAgentContext?agentId={agentId}",
         new StringContent("{}", Encoding.UTF8, "application/json"));
 
     if (!response.IsSuccessStatusCode)
@@ -3161,7 +3291,7 @@ server.RegisterTool("AgentPlanAdd", async (args) =>
         ["status"] = status
     };
 
-    var response = await server.Http.PostAsync($"/api/agents/coordination/AddTodo?agentId={agentId}",
+    var response = await server.Http.PostAsJsonAsync($"/api/agents/coordination/AddTodo?agentId={agentId}",
         new StringContent(todoItem.ToString(), Encoding.UTF8, "application/json"));
 
     if (!response.IsSuccessStatusCode)
@@ -3182,7 +3312,7 @@ server.RegisterTool("AgentPlanUpdate", async (args) =>
         ["status"] = status
     };
 
-    var response = await server.Http.PostAsync($"/api/agents/coordination/UpdateTodoStatus?agentId={agentId}",
+    var response = await server.Http.PostAsJsonAsync($"/api/agents/coordination/UpdateTodoStatus?agentId={agentId}",
         new StringContent(update.ToString(), Encoding.UTF8, "application/json"));
 
     if (!response.IsSuccessStatusCode)
@@ -3311,7 +3441,7 @@ server.RegisterTool("CreateCanvas", async (args) =>
         ["isTemplate"] = false
     };
 
-    var response = await server.Http.PostAsync("/api/canvas",
+    var response = await server.Http.PostAsJsonAsync("/api/canvas",
         new StringContent(request.ToString(), Encoding.UTF8, "application/json"));
 
     if (!response.IsSuccessStatusCode)
@@ -3372,7 +3502,7 @@ server.RegisterTool("AddCanvasNode", async (args) =>
             break;
     }
 
-    var response = await server.Http.PostAsync($"/api/canvas/{canvasId}/nodes",
+    var response = await server.Http.PostAsJsonAsync($"/api/canvas/{canvasId}/nodes",
         new StringContent(request.ToString(), Encoding.UTF8, "application/json"));
 
     if (!response.IsSuccessStatusCode)
@@ -3391,7 +3521,7 @@ server.RegisterTool("SaveContextToCanvas", async (args) =>
     var canvasId = args["canvasId"]?.Value<int>() ?? throw new ArgumentException("canvasId required");
 
     // Get agent context
-    var contextResponse = await server.Http.PostAsync($"/api/agents/coordination/GetAgentContext?agentId={agentId}",
+    var contextResponse = await server.Http.PostAsJsonAsync($"/api/agents/coordination/GetAgentContext?agentId={agentId}",
         new StringContent("{}", Encoding.UTF8, "application/json"));
 
     if (!contextResponse.IsSuccessStatusCode)
@@ -3415,7 +3545,7 @@ server.RegisterTool("SaveContextToCanvas", async (args) =>
         ["groupLabel"] = $"Agent #{agentId} - {context["taskName"]}"
     };
 
-    var groupResponse = await server.Http.PostAsync($"/api/canvas/{canvasId}/nodes",
+    var groupResponse = await server.Http.PostAsJsonAsync($"/api/canvas/{canvasId}/nodes",
         new StringContent(groupRequest.ToString(), Encoding.UTF8, "application/json"));
 
     if (groupResponse.IsSuccessStatusCode)
@@ -3442,7 +3572,7 @@ server.RegisterTool("SaveContextToCanvas", async (args) =>
             ["textContent"] = todoText
         };
 
-        var todoResponse = await server.Http.PostAsync($"/api/canvas/{canvasId}/nodes",
+        var todoResponse = await server.Http.PostAsJsonAsync($"/api/canvas/{canvasId}/nodes",
             new StringContent(todoRequest.ToString(), Encoding.UTF8, "application/json"));
 
         if (todoResponse.IsSuccessStatusCode)
@@ -3465,7 +3595,7 @@ server.RegisterTool("SaveContextToCanvas", async (args) =>
             ["textContent"] = $"📄 {file["filePath"]}"
         };
 
-        var fileResponse = await server.Http.PostAsync($"/api/canvas/{canvasId}/nodes",
+        var fileResponse = await server.Http.PostAsJsonAsync($"/api/canvas/{canvasId}/nodes",
             new StringContent(fileRequest.ToString(), Encoding.UTF8, "application/json"));
 
         if (fileResponse.IsSuccessStatusCode)
@@ -3593,7 +3723,7 @@ server.RegisterTool("EnableTenantFeature", async (args) =>
         payload["notes"] = notes;
     }
 
-    var response = await server.Http.PostAsync(
+    var response = await server.Http.PostAsJsonAsync(
         $"/api/tenants/{tenantId}/features/EnableFeature?featureId={featureId}",
         new StringContent(payload.ToString(), Encoding.UTF8, "application/json"));
 
@@ -3648,7 +3778,7 @@ server.RegisterTool("DisableTenantFeature", async (args) =>
         payload["notes"] = notes;
     }
 
-    var response = await server.Http.PostAsync(
+    var response = await server.Http.PostAsJsonAsync(
         $"/api/tenants/{tenantId}/features/DisableFeature?featureId={featureId}",
         new StringContent(payload.ToString(), Encoding.UTF8, "application/json"));
 
@@ -3691,7 +3821,7 @@ server.RegisterTool("DisableTenantModule", async (args) =>
         ["force"] = force
     };
 
-    var response = await server.Http.PostAsync(
+    var response = await server.Http.PostAsJsonAsync(
         $"/api/tenants/{tenantId}/features/DisableModule?moduleId={moduleId}",
         new StringContent(payload.ToString(), Encoding.UTF8, "application/json"));
 
@@ -3849,7 +3979,7 @@ server.RegisterTool("AdminOverrideFeature", async (args) =>
         ["notes"] = notes
     };
 
-    var response = await server.Http.PostAsync(
+    var response = await server.Http.PostAsJsonAsync(
         $"/api/administration/features/OverrideFeature?tenantId={tenantId}",
         new StringContent(payload.ToString(), Encoding.UTF8, "application/json"));
 
@@ -3906,7 +4036,7 @@ server.RegisterTool("AdminBulkEnableFeatures", async (args) =>
     if (featureIds.Count == 0)
         throw new ArgumentException("No valid feature IDs provided");
 
-    var response = await server.Http.PostAsync(
+    var response = await server.Http.PostAsJsonAsync(
         $"/api/administration/features/BulkEnableFeatures?tenantId={tenantId}",
         new StringContent(new JArray(featureIds).ToString(), Encoding.UTF8, "application/json"));
 
@@ -3990,7 +4120,7 @@ server.RegisterTool("GetTenantSettings", async (args) =>
 {
     var category = args["category"]?.Value<string>();
 
-    var response = await server.Http.PostAsync("/api/administration/tenant/settings/Get",
+    var response = await server.Http.PostAsJsonAsync("/api/administration/tenant/settings/Get",
         new StringContent("{}", Encoding.UTF8, "application/json"));
 
     if (!response.IsSuccessStatusCode)
@@ -4040,7 +4170,7 @@ server.RegisterTool("UpdateTenantSetting", async (args) =>
         ["value"] = value
     };
 
-    var response = await server.Http.PostAsync("/api/administration/tenant/settings/Update",
+    var response = await server.Http.PostAsJsonAsync("/api/administration/tenant/settings/Update",
         new StringContent(payload.ToString(), Encoding.UTF8, "application/json"));
 
     if (!response.IsSuccessStatusCode)
@@ -4118,7 +4248,7 @@ server.RegisterTool("ConfigureTenantFeatureSet", async (args) =>
             {
                 // Enable this feature
                 var enablePayload = new JObject();
-                var enableResponse = await server.Http.PostAsync(
+                var enableResponse = await server.Http.PostAsJsonAsync(
                     $"/api/tenants/{tenantId}/features/EnableFeature?featureId={featureId}",
                     new StringContent(enablePayload.ToString(), Encoding.UTF8, "application/json"));
 
@@ -4132,7 +4262,7 @@ server.RegisterTool("ConfigureTenantFeatureSet", async (args) =>
             {
                 // Disable this feature
                 var disablePayload = new JObject { ["force"] = true };
-                var disableResponse = await server.Http.PostAsync(
+                var disableResponse = await server.Http.PostAsJsonAsync(
                     $"/api/tenants/{tenantId}/features/DisableFeature?featureId={featureId}",
                     new StringContent(disablePayload.ToString(), Encoding.UTF8, "application/json"));
 
@@ -4168,7 +4298,7 @@ server.RegisterTool("GetTenantConfiguration", async (args) =>
         : new JArray();
 
     // Get settings
-    var settingsResponse = await server.Http.PostAsync("/api/administration/tenant/settings/Get",
+    var settingsResponse = await server.Http.PostAsJsonAsync("/api/administration/tenant/settings/Get",
         new StringContent("{}", Encoding.UTF8, "application/json"));
     var settings = settingsResponse.IsSuccessStatusCode
         ? JArray.Parse(await settingsResponse.Content.ReadAsStringAsync())
@@ -4232,7 +4362,7 @@ server.RegisterTool("InvalidateTenantCache", async (args) =>
         ["reason"] = reason
     };
 
-    var response = await server.Http.PostAsync(
+    var response = await server.Http.PostAsJsonAsync(
         $"/api/tenants/{tenantId}/features/InvalidateTenantCache",
         new StringContent(payload.ToString(), Encoding.UTF8, "application/json"));
 
@@ -4658,7 +4788,7 @@ server.RegisterTool("ScanForTags", async (args) =>
     var content = args["content"]?.Value<string>() ?? throw new ArgumentException("content required");
 
     var payload = new JObject { ["content"] = content };
-    var response = await server.Http.PostAsync(
+    var response = await server.Http.PostAsJsonAsync(
         "/api/audit/tags/scan",
         new StringContent(payload.ToString(), Encoding.UTF8, "application/json"));
 
@@ -4722,7 +4852,7 @@ server.RegisterTool("CreateTagDetection", async (args) =>
         ["actorType"] = "agent"
     };
 
-    var response = await server.Http.PostAsync(
+    var response = await server.Http.PostAsJsonAsync(
         "/api/audit/tags/detect",
         new StringContent(payload.ToString(), Encoding.UTF8, "application/json"));
 
@@ -4834,7 +4964,7 @@ server.RegisterTool("ApproveServaItem", async (args) =>
         payload["editedResponse"] = editedResponse;
     }
 
-    var response = await server.Http.PostAsync(
+    var response = await server.Http.PostAsJsonAsync(
         $"/api/serva/queue/{itemId}/approve",
         new StringContent(payload.ToString(), Encoding.UTF8, "application/json"));
 
@@ -4854,7 +4984,7 @@ server.RegisterTool("RejectServaItem", async (args) =>
 
     var payload = new JObject { ["reason"] = reason };
 
-    var response = await server.Http.PostAsync(
+    var response = await server.Http.PostAsJsonAsync(
         $"/api/serva/queue/{itemId}/reject",
         new StringContent(payload.ToString(), Encoding.UTF8, "application/json"));
 
@@ -4964,27 +5094,27 @@ server.RegisterTool("RespondToSocialMention", async (args) =>
 
     if (action == "skip")
     {
-        response = await server.Http.PostAsync(
+        response = await server.Http.PostAsJsonAsync(
             $"/api/social/monitoring/mentions/{mentionId}/skip",
             new StringContent("{}", Encoding.UTF8, "application/json"));
     }
     else if (action == "auto")
     {
-        response = await server.Http.PostAsync(
+        response = await server.Http.PostAsJsonAsync(
             $"/api/social/monitoring/mentions/{mentionId}/auto",
             new StringContent("{}", Encoding.UTF8, "application/json"));
     }
     else if (action == "custom" && !string.IsNullOrEmpty(response_text))
     {
         var payload = new JObject { ["response"] = response_text };
-        response = await server.Http.PostAsync(
+        response = await server.Http.PostAsJsonAsync(
             $"/api/social/monitoring/mentions/{mentionId}/respond",
             new StringContent(payload.ToString(), Encoding.UTF8, "application/json"));
     }
     else
     {
         // Accept draft
-        response = await server.Http.PostAsync(
+        response = await server.Http.PostAsJsonAsync(
             $"/api/social/monitoring/mentions/{mentionId}/accept",
             new StringContent("{}", Encoding.UTF8, "application/json"));
     }
@@ -5849,7 +5979,7 @@ server.RegisterTool("RespondToMention", async (args) =>
     var payload = new JObject { ["response"] = responseText };
     var httpContent = new StringContent(payload.ToString(), Encoding.UTF8, "application/json");
 
-    var response = await server.Http.PostAsync($"/api/social/monitoring/mentions/{mentionId}/respond", httpContent);
+    var response = await server.Http.PostAsJsonAsync($"/api/social/monitoring/mentions/{mentionId}/respond", httpContent);
     response.EnsureSuccessStatusCode();
 
     return new { success = true, message = $"Response sent to mention {mentionId}" };
@@ -6108,7 +6238,7 @@ server.RegisterTool("ScanForTags", async (args) =>
     var payload = new JObject { ["content"] = content };
     var httpContent = new StringContent(payload.ToString(), Encoding.UTF8, "application/json");
 
-    var response = await server.Http.PostAsync("/api/audit/tags/scan", httpContent);
+    var response = await server.Http.PostAsJsonAsync("/api/audit/tags/scan", httpContent);
     response.EnsureSuccessStatusCode();
 
     var result = JObject.Parse(await response.Content.ReadAsStringAsync());
@@ -6925,7 +7055,7 @@ server.RegisterTool("ConnectRepository", async (args) =>
     }
 
     var content = new StringContent(request.ToString(), Encoding.UTF8, "application/json");
-    var response = await server.Http.PostAsync("/api/devops/repositories", content);
+    var response = await server.Http.PostAsJsonAsync("/api/devops/repositories", content);
     response.EnsureSuccessStatusCode();
     var repo = JObject.Parse(await response.Content.ReadAsStringAsync());
 
@@ -7086,7 +7216,7 @@ server.RegisterTool("LinkPullRequestToTask", async (args) =>
 
     var request = new JObject { ["taskId"] = taskId };
     var content = new StringContent(request.ToString(), Encoding.UTF8, "application/json");
-    var response = await server.Http.PostAsync($"/api/devops/pullrequests/{pullRequestId}/link", content);
+    var response = await server.Http.PostAsJsonAsync($"/api/devops/pullrequests/{pullRequestId}/link", content);
     response.EnsureSuccessStatusCode();
 
     return new
@@ -7292,7 +7422,7 @@ server.RegisterTool("StartSupervisor", async (args) =>
     var agents = args["agents"]?.Value<string>() ?? "build,test,deploy,analysis";
     var maxParallel = args["maxParallel"]?.Value<int>() ?? 4;
 
-    var response = await server.Http.PostAsync("/api/agents/supervisor/start", new
+    var response = await server.Http.PostAsJsonAsync("/api/agents/supervisor/start", new
     {
         agents = agents.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries),
         maxParallelAgents = maxParallel,
@@ -7320,7 +7450,7 @@ server.RegisterTool("StopSupervisor", async (args) =>
 {
     var graceful = args["graceful"]?.Value<bool>() ?? true;
 
-    var response = await server.Http.PostAsync("/api/agents/supervisor/stop", new { graceful });
+    var response = await server.Http.PostAsJsonAsync("/api/agents/supervisor/stop", new { graceful });
 
     if (!response.IsSuccessStatusCode)
     {
@@ -7354,7 +7484,7 @@ server.RegisterTool("AssignSupervisorTask", async (args) =>
         ?? throw new ArgumentException("taskDescription required");
     var dryRun = args["dryRun"]?.Value<bool>() ?? false;
 
-    var response = await server.Http.PostAsync("/api/agents/supervisor/assign", new
+    var response = await server.Http.PostAsJsonAsync("/api/agents/supervisor/assign", new
     {
         taskDescription,
         dryRun
@@ -7402,7 +7532,7 @@ server.RegisterTool("ControlPlan", async (args) =>
         ?? throw new ArgumentException("action required (pause/resume/cancel)");
     var planId = args["planId"]?.Value<string>();
 
-    var response = await server.Http.PostAsync($"/api/agents/supervisor/plan/{action}", new { planId });
+    var response = await server.Http.PostAsJsonAsync($"/api/agents/supervisor/plan/{action}", new { planId });
 
     if (!response.IsSuccessStatusCode)
     {
@@ -7425,7 +7555,7 @@ server.RegisterTool("SpawnSpecializedAgent", async (args) =>
     var model = args["model"]?.Value<string>();
     var customPromptPath = args["customPromptPath"]?.Value<string>();
 
-    var response = await server.Http.PostAsync("/api/agents/spawn", new
+    var response = await server.Http.PostAsJsonAsync("/api/agents/spawn", new
     {
         role,
         model,
@@ -7478,7 +7608,7 @@ server.RegisterTool("ControlAgent", async (args) =>
         ?? throw new ArgumentException("action required (pause/resume/terminate)");
     var force = args["force"]?.Value<bool>() ?? false;
 
-    var response = await server.Http.PostAsync($"/api/agents/{agentId}/{action}", new { force });
+    var response = await server.Http.PostAsJsonAsync($"/api/agents/{agentId}/{action}", new { force });
 
     if (!response.IsSuccessStatusCode)
     {
@@ -7502,7 +7632,7 @@ server.RegisterTool("SendAgentMessage", async (args) =>
     var messageType = args["messageType"]?.Value<string>() ?? "Command";
     var payload = args["payload"]?.ToString() ?? "{}";
 
-    var response = await server.Http.PostAsync("/api/agents/message", new
+    var response = await server.Http.PostAsJsonAsync("/api/agents/message", new
     {
         toAgentId,
         messageType,
@@ -7530,7 +7660,7 @@ server.RegisterTool("ValidateAgentOutput", async (args) =>
         ?? throw new ArgumentException("stepId required");
     var output = args["output"]?.Value<string>() ?? "";
 
-    var response = await server.Http.PostAsync("/api/agents/validate", new
+    var response = await server.Http.PostAsJsonAsync("/api/agents/validate", new
     {
         agentId,
         stepId,
