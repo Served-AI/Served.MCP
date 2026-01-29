@@ -1,0 +1,31 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <Version>2026.1.3</Version>
+    <AssemblyTitle>Served MCP Server</AssemblyTitle>
+    <Description>MCP Server for AI assistants to interact with the Served platform via UnifiedHQ</Description>
+    <Authors>UnifiedHQ, Thomas Helledi</Authors>
+    <Company>UnifiedHQ</Company>
+    <Copyright>Copyright (c) UnifiedHQ 2024-2026</Copyright>
+    <RepositoryUrl>https://github.com/Served-AI/Served.MCP</RepositoryUrl>
+    <Product>Served.MCP</Product>
+    <PackageTags>mcp;ai;served;claude;llm;unifiedhq;forge;openai;anthropic</PackageTags>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
+  </ItemGroup>
+
+  <!-- Use NuGet package for standalone builds, ProjectReference for ServedApp builds -->
+  <ItemGroup Condition="!Exists('..\Served.SDK\Served.SDK.csproj')">
+    <PackageReference Include="Served.SDK" Version="1.4.0" />
+  </ItemGroup>
+  <ItemGroup Condition="Exists('..\Served.SDK\Served.SDK.csproj')">
+    <ProjectReference Include="..\Served.SDK\Served.SDK.csproj" />
+  </ItemGroup>
+
+</Project>
