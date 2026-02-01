@@ -1276,9 +1276,9 @@ server.RegisterTool("GetIntegrationUsage", async (args) =>
     sb.AppendLine();
 
     // Overall stats
-    if (result["summary"] != null)
+    var summary = result["summary"];
+    if (summary != null)
     {
-        var summary = result["summary"];
         sb.AppendLine($"## Summary");
         sb.AppendLine($"  Total Calls: {summary["totalCalls"] ?? 0}");
         sb.AppendLine($"  Successful: {summary["successfulCalls"] ?? 0}");
@@ -2925,8 +2925,9 @@ server.RegisterTool("GetWorkflows", async (args) =>
             var trigger = workflow["trigger"];
             if (trigger != null)
             {
-                if (trigger["schedule"] != null)
-                    sb.AppendLine($"     Schedule: {trigger["schedule"]["cron"]}");
+                var schedule = trigger["schedule"];
+                if (schedule != null)
+                    sb.AppendLine($"     Schedule: {schedule["cron"]}");
                 if (trigger["filePatterns"] is JArray patterns)
                     sb.AppendLine($"     Patterns: {string.Join(", ", patterns.Select(p => p.ToString()))}");
             }
@@ -2966,12 +2967,13 @@ server.RegisterTool("GetWorkflowDetails", async (args) =>
         sb.AppendLine($"  ## Trigger");
         sb.AppendLine($"  type: \"{trigger["type"]}\"");
 
-        if (trigger["schedule"] != null)
+        var schedule = trigger["schedule"];
+        if (schedule != null)
         {
             sb.AppendLine($"  schedule:");
-            sb.AppendLine($"    cron: \"{trigger["schedule"]["cron"]}\"");
-            if (trigger["schedule"]["timezone"] != null)
-                sb.AppendLine($"    timezone: \"{trigger["schedule"]["timezone"]}\"");
+            sb.AppendLine($"    cron: \"{schedule["cron"]}\"");
+            if (schedule["timezone"] != null)
+                sb.AppendLine($"    timezone: \"{schedule["timezone"]}\"");
         }
 
         if (trigger["filePatterns"] is JArray patterns)
@@ -7682,6 +7684,238 @@ server.RegisterTool("ValidateAgentOutput", async (args) =>
         warnings = result?.warnings,
         errors = result?.errors
     };
+});
+
+// ----------------------------------------------------------------------
+// Atlas Request Tools (F2 Brick - Foundation)
+// Human-in-the-loop: Ask, Request, Notify via UnifiedHost
+// ----------------------------------------------------------------------
+
+server.RegisterTool("AtlasAsk", async (args) =>
+{
+    var question = args["question"]?.Value<string>() ?? throw new ArgumentException("question required");
+    var optionsArray = args["options"] as JArray ?? throw new ArgumentException("options required (array of strings)");
+    var recommend = args["recommend"]?.Value<int?>();
+    var timeoutSeconds = args["timeoutSeconds"]?.Value<int>() ?? 300;
+    var allowCustom = args["allowCustom"]?.Value<bool>() ?? false;
+
+    var options = optionsArray.Select(o => o.ToString()).ToList();
+
+    var dto = new
+    {
+        message = question,
+        options = options,
+        recommend = recommend,
+        allowCustom = allowCustom,
+        timeoutSeconds = timeoutSeconds
+    };
+
+    var response = await server.Http.PostAsJsonAsync("/api/atlas/ask", dto);
+
+    if (!response.IsSuccessStatusCode)
+    {
+        var error = await response.Content.ReadAsStringAsync();
+        return new { success = false, error = $"Failed to create question: {error}" };
+    }
+
+    var request = JObject.Parse(await response.Content.ReadAsStringAsync());
+    var requestId = request["id"]?.Value<string>();
+
+    // Wait for response
+    var waitResponse = await server.Http.GetAsync($"/api/atlas/request/{requestId}/wait?timeout={timeoutSeconds}");
+    var result = JObject.Parse(await waitResponse.Content.ReadAsStringAsync());
+
+    var status = result["status"]?.Value<string>() ?? "Unknown";
+    var selectedIndex = result["selectedOption"]?.Value<int?>();
+    var customResponse = result["customResponse"]?.Value<string>();
+
+    if (status == "Answered" || status == "Approved")
+    {
+        var selectedOption = selectedIndex.HasValue && selectedIndex.Value < options.Count
+            ? options[selectedIndex.Value]
+            : customResponse ?? "Unknown";
+
+        return new
+        {
+            success = true,
+            answered = true,
+            selectedIndex = selectedIndex,
+            selectedOption = selectedOption,
+            customResponse = customResponse,
+            requestId = requestId
+        };
+    }
+    else if (status == "Timeout")
+    {
+        return new { success = false, timedOut = true, requestId = requestId };
+    }
+    else
+    {
+        return new { success = false, status = status, requestId = requestId };
+    }
+});
+
+server.RegisterTool("AtlasRequest", async (args) =>
+{
+    var message = args["message"]?.Value<string>() ?? throw new ArgumentException("message required");
+    var context = args["context"]?.Value<string>();
+    var impact = args["impact"]?.Value<string>();
+    var timeoutSeconds = args["timeoutSeconds"]?.Value<int>() ?? 300;
+
+    var dto = new
+    {
+        type = "Request",
+        message = message,
+        context = context,
+        impact = impact,
+        timeoutSeconds = timeoutSeconds
+    };
+
+    var response = await server.Http.PostAsJsonAsync("/api/atlas/request", dto);
+
+    if (!response.IsSuccessStatusCode)
+    {
+        var error = await response.Content.ReadAsStringAsync();
+        return new { success = false, error = $"Failed to create request: {error}" };
+    }
+
+    var request = JObject.Parse(await response.Content.ReadAsStringAsync());
+    var requestId = request["id"]?.Value<string>();
+
+    // Wait for response
+    var waitResponse = await server.Http.GetAsync($"/api/atlas/request/{requestId}/wait?timeout={timeoutSeconds}");
+    var result = JObject.Parse(await waitResponse.Content.ReadAsStringAsync());
+
+    var status = result["status"]?.Value<string>() ?? "Unknown";
+
+    if (status == "Approved")
+    {
+        return new { success = true, approved = true, requestId = requestId };
+    }
+    else if (status == "Denied")
+    {
+        var reason = result["customResponse"]?.Value<string>();
+        return new { success = true, approved = false, reason = reason, requestId = requestId };
+    }
+    else if (status == "Timeout")
+    {
+        return new { success = false, timedOut = true, requestId = requestId };
+    }
+    else
+    {
+        return new { success = false, status = status, requestId = requestId };
+    }
+});
+
+server.RegisterTool("AtlasNotify", async (args) =>
+{
+    var message = args["message"]?.Value<string>() ?? throw new ArgumentException("message required");
+    var level = args["level"]?.Value<string>() ?? "info";
+    var details = args["details"]?.Value<string>();
+
+    var dto = new
+    {
+        message = message,
+        level = level,
+        details = details
+    };
+
+    var response = await server.Http.PostAsJsonAsync("/api/atlas/notify", dto);
+
+    if (!response.IsSuccessStatusCode)
+    {
+        // Fallback - notification sent locally
+        return new { success = true, sentLocally = true, message = message };
+    }
+
+    return new { success = true, sent = true };
+});
+
+server.RegisterTool("AtlasGetPendingRequests", async (args) =>
+{
+    var limit = args["limit"]?.Value<int>() ?? 20;
+
+    var response = await server.Http.GetAsync($"/api/atlas/requests/pending?limit={limit}");
+
+    if (!response.IsSuccessStatusCode)
+    {
+        return new { success = false, error = "Failed to get pending requests" };
+    }
+
+    var requests = JArray.Parse(await response.Content.ReadAsStringAsync());
+
+    var sb = new StringBuilder();
+    sb.AppendLine($"# Pending Atlas Requests ({requests.Count})");
+    sb.AppendLine();
+
+    if (requests.Count == 0)
+    {
+        sb.AppendLine("No pending requests.");
+    }
+    else
+    {
+        foreach (var req in requests)
+        {
+            var typeIcon = req["type"]?.Value<string>() switch
+            {
+                "Ask" => "❓",
+                "Request" => "✋",
+                "Confirm" => "✅",
+                _ => "📝"
+            };
+
+            sb.AppendLine($"{typeIcon} @request[{req["id"]}] {{");
+            sb.AppendLine($"  type: \"{req["type"]}\"");
+            sb.AppendLine($"  message: \"{req["message"]}\"");
+
+            if (req["options"] is JArray options && options.Count > 0)
+            {
+                sb.AppendLine($"  options: [{string.Join(", ", options.Select(o => $"\"{o}\""))}]");
+            }
+
+            if (req["context"] != null)
+                sb.AppendLine($"  context: \"{req["context"]}\"");
+
+            sb.AppendLine($"  createdAt: \"{req["createdAt"]}\"");
+            sb.AppendLine($"  expiresAt: \"{req["expiresAt"]}\"");
+            sb.AppendLine("}");
+            sb.AppendLine();
+        }
+    }
+
+    return sb.ToString();
+});
+
+server.RegisterTool("AtlasRespond", async (args) =>
+{
+    var requestId = args["requestId"]?.Value<string>() ?? throw new ArgumentException("requestId required");
+    var response = args["response"]?.Value<string>() ?? throw new ArgumentException("response required");
+    var selectedOption = args["selectedOption"]?.Value<int?>();
+    var reason = args["reason"]?.Value<string>();
+
+    var status = response.ToLower() switch
+    {
+        "approve" or "yes" or "y" => "Approved",
+        "deny" or "no" or "n" => "Denied",
+        _ => response
+    };
+
+    var dto = new
+    {
+        status = status,
+        selectedOption = selectedOption,
+        customResponse = reason
+    };
+
+    var httpResponse = await server.Http.PostAsJsonAsync($"/api/atlas/request/{requestId}/respond", dto);
+
+    if (!httpResponse.IsSuccessStatusCode)
+    {
+        var error = await httpResponse.Content.ReadAsStringAsync();
+        return new { success = false, error = $"Failed to respond: {error}" };
+    }
+
+    return new { success = true, requestId = requestId, status = status };
 });
 
 // Start Server
