@@ -1,8 +1,22 @@
 # Served MCP Server
 
-**Version:** 2026.1.2
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![.NET](https://img.shields.io/badge/.NET-10.0-512BD4)](https://dotnet.microsoft.com/)
+[![MCP](https://img.shields.io/badge/MCP-Compatible-blue)](https://modelcontextprotocol.io)
 
-MCP (Model Context Protocol) Server for AI assistants to interact with the Served platform. Enables Claude, GPT, and other AI models to access workspaces, projects, tasks, customers, and more.
+**Version:** 2026.1.3
+
+MCP (Model Context Protocol) Server for AI assistants to interact with the Served platform via [UnifiedHQ](https://unifiedhq.ai). Enables Claude, GPT, and other AI models to access workspaces, projects, tasks, customers, and more.
+
+## Links
+
+| Resource | URL |
+|----------|-----|
+| **UnifiedHQ Platform** | [unifiedhq.ai](https://unifiedhq.ai) |
+| **Forge DevOps** | [forge.unifiedhq.ai](https://forge.unifiedhq.ai) |
+| **API Documentation** | [unifiedhq.ai/docs/api](https://unifiedhq.ai/docs/api) |
+| **Served.SDK (NuGet)** | [nuget.org/packages/Served.SDK](https://www.nuget.org/packages/Served.SDK) |
+| **MCP Protocol** | [modelcontextprotocol.io](https://modelcontextprotocol.io) |
 
 ## Features
 
@@ -10,384 +24,191 @@ MCP (Model Context Protocol) Server for AI assistants to interact with the Serve
 - **AI Intelligence** - Project health analysis, task decomposition, effort estimation
 - **DevOps Integration** - Git repos, PRs, CI/CD pipelines
 - **SDK Tracing** - OpenTelemetry observability via Served.SDK
-- **Analytics** - Tool usage metrics and performance tracking
-
-## Quick Links
-
-| Document | Description |
-|----------|-------------|
-| [UNIFIED-FORMAT.md](UNIFIED-FORMAT.md) | Unified file format specification |
-| [tools/mcp/](tools/mcp/) | MCP tool documentation (unified format) |
-| [tools/api/](tools/api/) | REST API tool documentation |
-| [skills/](skills/) | Skills documentation |
-| [schemas/](schemas/) | JSON schemas |
+- **Analytics** - View tool usage metrics at [forge.unifiedhq.ai/analytics](https://forge.unifiedhq.ai/analytics)
+- **Fork & Extend** - Open source - customize for your needs
 
 ---
 
-## Unified File Format
+## Quick Start
 
-All MCP documentation uses the **Unified File Format** for consistency and machine-readability.
+### 1. Configure Claude Desktop
 
-### Supported Formats
+Add to your Claude Desktop config (`~/Library/Application Support/Claude/claude_desktop_config.json`):
 
-| Format | Extension | Use Case |
-|--------|-----------|----------|
-| Markdown | `.unified.md` | Human-readable with YAML frontmatter |
-| JSON | `.unified.json` | Machine-readable, API integration |
-| YAML | `.unified.yaml` | Machine-readable, configuration |
-
-### Structure
-
-```markdown
----
-type: mcp-tool
-name: ToolName
-version: 2026.1.2
-domain: tasks
-tags: [mcp, tasks, crud]
-description: Brief description.
----
-
-# ToolName
-
-## Parameters
-| Name | Type | Required | Description |
-|------|------|----------|-------------|
-
-## Response
-\`\`\`json
-{ "success": true }
-\`\`\`
-
-## Examples
-...
+```json
+{
+  "mcpServers": {
+    "served": {
+      "command": "dotnet",
+      "args": ["run", "--project", "/path/to/Served.MCP"],
+      "env": {
+        "SERVED_API_URL": "https://apis.unifiedhq.ai",
+        "SERVED_TOKEN": "your-api-token",
+        "SERVED_TENANT": "your-workspace-slug"
+      }
+    }
+  }
+}
 ```
 
-### Schema
+### 2. Get Your API Token
 
-JSON Schema: `schemas/unified-v1.json`
+1. Go to [unifiedhq.ai/app/settings/api-keys](https://unifiedhq.ai/app/settings/api-keys)
+2. Create a new API key with desired scopes
+3. Copy the token to your config
 
-See [UNIFIED-FORMAT.md](UNIFIED-FORMAT.md) for full specification.
+### 3. Start Using
 
----
-
-## MCP Tools Oversigt
-
-MCP Server: `https://app.served.dk/mcp`
-
-### Context
-
-| Tool | Beskrivelse |
-|------|-------------|
-| `GetUserContext` | Hent bruger profil og workspaces. **Kald denne først.** |
-| `GetTenantContext` | Hent detaljeret tenant info (indstillinger, kategorier). |
-| `GetProjectContext` | Hent projekt med tasks, team og recent activity. |
-
-→ Se [tools/mcp/context.unified.md](tools/mcp/context.unified.md) for detaljer
-
-### Agent Plan (TodoWrite-style)
-
-| Tool | Beskrivelse |
-|------|-------------|
-| `AgentPlanGet` | Hent nuværende plan/todos for aktiv agent session. |
-| `AgentPlanAdd` | Tilføj nyt todo item til plan. |
-| `AgentPlanUpdate` | Opdater todo status (pending/in_progress/completed/skipped). |
-
-→ Se [tools/mcp/agentplan.unified.md](tools/mcp/agentplan.unified.md) for parametre
-
-### Canvas
-
-| Tool | Beskrivelse |
-|------|-------------|
-| `GetCanvasList` | List canvases i en workspace. |
-| `GetCanvasDetail` | Hent canvas med alle nodes og edges. |
-| `CreateCanvas` | Opret ny canvas. |
-| `AddCanvasNode` | Tilføj node til canvas (text/file/link/group/entity). |
-| `SaveContextToCanvas` | Gem aktuel agent context til canvas. |
-
-→ Se [tools/mcp/canvas.unified.md](tools/mcp/canvas.unified.md) for parametre
-
-### Projects
-
-| Tool | Beskrivelse |
-|------|-------------|
-| `GetProjects` | List alle projekter for workspace |
-| `GetProjectDetails` | Hent detaljeret projektinformation |
-| `CreateProject` | Opret nyt projekt (inkl. underprojekter via parentId) |
-| `UpdateProject` | Opdater eksisterende projekt (inkl. flyt via parentId) |
-| `DeleteProject` | Slet projekt |
-| `UpdateProjectsBulk` | Bulk opdater projekter (kræver bekræftelse) |
-| `ExecuteUpdateProjectsBulk` | Udfør bulk opdatering af projekter |
-
-→ Se [tools/mcp/projects.unified.md](tools/mcp/projects.unified.md) for parametre
-
-### Tasks
-
-| Tool | Beskrivelse |
-|------|-------------|
-| `GetTasks` | Hent opgaver for projekt |
-| `GetTaskDetails` | Hent detaljeret opgaveinformation |
-| `CreateTask` | Opret ny opgave (inkl. underopgaver via parentTaskId) |
-| `UpdateTask` | Opdater opgave (inkl. flyt via parentTaskId) |
-| `DeleteTask` | Slet opgave |
-| `CreateTasksBulk` | Bulk opret (kræver bekræftelse) |
-| `ExecuteCreateTasksBulk` | Udfør bulk efter bekræftelse |
-| `UpdateTasksBulk` | Bulk opdater (kræver bekræftelse) |
-| `ExecuteUpdateTasksBulk` | Udfør bulk opdatering efter bekræftelse |
-
-→ Se [tools/mcp/tasks.unified.md](tools/mcp/tasks.unified.md) for parametre
-
-### Customers
-
-| Tool | Beskrivelse |
-|------|-------------|
-| `GetCustomers` | List kunder |
-| `GetCustomerDetails` | Hent detaljeret kundeinformation |
-| `CreateCustomer` | Opret kunde |
-| `UpdateCustomer` | Opdater kunde |
-| `DeleteCustomer` | Slet kunde |
-
-→ Se [tools/mcp/customers.unified.md](tools/mcp/customers.unified.md) for parametre
-
-### Agreements
-
-| Tool | Beskrivelse |
-|------|-------------|
-| `GetAgreements` | List aftaler/bookinger |
-| `GetAgreementDetails` | Hent detaljeret aftaleinformation |
-| `CreateAgreement` | Opret aftale |
-| `UpdateAgreement` | Opdater aftale |
-| `DeleteAgreement` | Slet aftale |
-
-→ Se [tools/mcp/agreements.unified.md](tools/mcp/agreements.unified.md) for parametre
-
-### Custom Fields
-
-| Tool | Beskrivelse |
-|------|-------------|
-| `GetCustomFieldDefinitions` | Hent feltdefinitioner for en domæntype |
-| `GetEntityCustomFields` | Hent custom field værdier for en entitet |
-| `SetCustomFieldValue` | Sæt en enkelt custom field værdi |
-| `BulkSetCustomFieldValues` | Sæt flere custom field værdier på én gang |
-
-→ Se [tools/mcp/customfields.unified.md](tools/mcp/customfields.unified.md) for parametre
-
-### Time Tracking (AI)
-
-| Tool | Beskrivelse |
-|------|-------------|
-| `SuggestTimeEntries` | AI-forslag til tidsregistrering |
-| `AnalyzeTimePatterns` | Analyser brugerens tidsmønstre |
-
-→ Se [tools/mcp/timetracking.unified.md](tools/mcp/timetracking.unified.md) for parametre
-
-### Project Intelligence (AI)
-
-| Tool | Beskrivelse |
-|------|-------------|
-| `AnalyzeProjectHealth` | Sundhedscheck med score, risici, anbefalinger |
-| `SuggestTaskDecomposition` | Forslag til opgaveopdeling |
-| `EstimateEffort` | AI-estimat baseret på historik |
-| `FindSimilarProjects` | Find lignende projekter |
-
-→ Se [tools/mcp/intelligence.unified.md](tools/mcp/intelligence.unified.md) for parametre
-
-### Employees
-
-| Tool | Beskrivelse |
-|------|-------------|
-| `GetEmployees` | List team medlemmer |
-
-→ Se [tools/mcp/employees.unified.md](tools/mcp/employees.unified.md) for parametre
-
-### DevOps - Git Repositories
-
-| Tool | Beskrivelse |
-|------|-------------|
-| `GetDevOpsRepositories` | List forbundne Git repos (GitHub, GitLab, Azure DevOps) |
-| `GetDevOpsRepository` | Hent detaljer for et repository |
-| `ConnectRepository` | Forbind nyt Git repository med webhook setup |
-| `UpdateRepository` | Opdater repository indstillinger |
-| `DisconnectRepository` | Fjern repository forbindelse |
-
-→ Se [tools/mcp/devops.unified.md](tools/mcp/devops.unified.md) for parametre
-
-### DevOps - Pull Requests
-
-| Tool | Beskrivelse |
-|------|-------------|
-| `GetPullRequests` | Hent PRs for workspace eller repository |
-| `GetTaskPullRequests` | Hent PRs linket til en task |
-| `GetAgentSessionPullRequests` | Hent PRs oprettet af CLI agent session |
-| `LinkPullRequestToTask` | Link PR til Served task |
-
-→ Se [tools/mcp/devops.unified.md](tools/mcp/devops.unified.md) for parametre
-
-### DevOps - Pipeline/CI
-
-| Tool | Beskrivelse |
-|------|-------------|
-| `GetPipelineRuns` | Hent pipeline runs for PR eller repository |
-| `GetLatestPipelineRun` | Hent seneste CI status for PR |
-| `GetPipelineJobs` | Hent jobs for en pipeline (GitLab) |
-| `GetJobLog` | Hent log output fra et job |
-| `RetryJob` | Retry et fejlet job |
-| `CancelJob` | Annuller et kørende job |
-
-→ Se [tools/mcp/devops.unified.md](tools/mcp/devops.unified.md) for parametre
-
-### Files (Local Filesystem)
-
-| Tool | Beskrivelse |
-|------|-------------|
-| `served_file_find` | Find files with smart filtering |
-| `served_file_stats` | Get directory statistics |
-| `served_file_duplicates` | Find duplicate files |
-| `served_file_tree` | Display directory tree |
-| `served_file_auth_status` | Check tooling auth config |
-| `served_file_auth_allow` | Grant temporary path access |
-
-→ Se [tools/mcp/files.unified.md](tools/mcp/files.unified.md) for parametre
+In Claude, you can now:
+- "Show me my projects"
+- "Create a task for Project X"
+- "Log 2 hours on the Website task"
+- "What's the health of Project Y?"
 
 ---
 
-## REST API Tools Oversigt
+## Installation Options
 
-Base URL: `https://app.served.dk`
-
-### Customer
-
-| Endpoint | Metode | Beskrivelse |
-|----------|--------|-------------|
-| `/api/calendar/customer/Get` | GET | Hent kunde |
-| `/api/calendar/customer/GetKeys` | POST | Hent kunde IDs |
-| `/api/calendar/customer/Create` | POST | Opret kunde |
-| `/api/calendar/customer/Update` | POST | Opdater kunde |
-| `/api/calendar/customer/Delete` | DELETE | Slet kunder |
-| `/api/calendar/customer/LookUp` | POST | Søg kunder |
-
-→ Se [tools/api/customer.md](tools/api/customer.md) for detaljer
-
-### Project (API V2)
-
-| Endpoint | Metode | Beskrivelse |
-|----------|--------|-------------|
-| `/api/projects` | GET | List projekter med filtrering |
-| `/api/projects/{id}` | GET | Hent projekt detaljer |
-| `/api/projects` | POST | Opret projekt |
-| `/api/projects/{id}` | PUT | Opdater projekt |
-| `/api/projects/{id}` | PATCH | Delvis opdatering |
-| `/api/projects/{id}` | DELETE | Slet projekt |
-| `/api/projects/by-customer/{customerId}` | GET | Projekter for kunde |
-| `/api/projects/grouping` | POST | Hent grupperet |
-| `/api/projects/can-delete` | POST | Check sletbarhed |
-
-→ Se [tools/api/project.md](tools/api/project.md) for detaljer
-
-### Task (API V2)
-
-| Endpoint | Metode | Beskrivelse |
-|----------|--------|-------------|
-| `/api/tasks` | GET | List tasks med filtrering |
-| `/api/tasks/{id}` | GET | Hent task detaljer |
-| `/api/tasks` | POST | Opret task |
-| `/api/tasks/{id}` | PUT | Opdater task |
-| `/api/tasks/{id}` | PATCH | Delvis opdatering |
-| `/api/tasks/{id}` | DELETE | Slet task |
-| `/api/tasks/{id}/status` | PATCH | Opdater status |
-| `/api/tasks/by-project/{projectId}` | GET | Tasks for projekt |
-| `/api/tasks/grouping` | POST | Hent grupperet |
-| `/api/tasks/gantt` | POST | Hent Gantt data |
-
-→ Se [tools/api/task.md](tools/api/task.md) for detaljer
-
-### Agreement (API V2)
-
-| Endpoint | Metode | Beskrivelse |
-|----------|--------|-------------|
-| `/api/agreements` | GET | List aftaler med filtrering |
-| `/api/agreements/{id}` | GET | Hent aftale |
-| `/api/agreements` | POST | Opret aftale |
-| `/api/agreements/{id}` | PUT | Opdater aftale |
-| `/api/agreements/{id}` | DELETE | Slet aftale |
-| `/api/agreements/by-customer/{customerId}` | GET | Aftaler for kunde |
-| `/api/agreements/by-date-range` | GET | Aftaler i datointerval |
-
-→ Se [tools/api/agreement.md](tools/api/agreement.md) for detaljer
-
-### Meeting (API V2)
-
-| Endpoint | Metode | Beskrivelse |
-|----------|--------|-------------|
-| `/api/meetings` | GET | List møder med filtrering |
-| `/api/meetings/{id}` | GET | Hent møde detaljer |
-| `/api/meetings` | POST | Opret møde |
-| `/api/meetings/{id}` | PUT | Opdater møde |
-| `/api/meetings/{id}` | DELETE | Slet møde |
-| `/api/meetings/by-claim/{claimId}` | GET | Møde via claim ID |
-| `/api/meetings/{id}/participants` | GET/POST | Deltagere |
-| `/api/meetings/{id}/recordings` | GET/POST | Optagelser |
-| `/api/meetings/{id}/notes` | GET/POST | Mødenoter |
-| `/api/meetings/{id}/action-items` | GET/POST | Handlingspunkter |
-
-→ Se [tools/api/meeting.md](tools/api/meeting.md) for detaljer
-
-### Time Registration
-
-| Endpoint | Metode | Beskrivelse |
-|----------|--------|-------------|
-| `/api/registration/timeregistration/GetKeys` | POST | Hent IDs |
-| `/api/registration/timeregistration/Get` | POST | Hent registreringer |
-| `/api/registration/timeregistration/Group` | POST | Hent grupperet |
-| `/api/registration/timeregistration/Save` | POST | Opret/opdater |
-| `/api/registration/timeregistration/Delete` | DELETE | Slet |
-| `/api/registration/timeregistration/suggestions` | GET | AI-forslag |
-| `/api/registration/timeregistration/patterns` | GET | Tidsmønstre |
-
-→ Se [tools/api/timeregistration.md](tools/api/timeregistration.md) for detaljer
-
-### Finance (Invoice)
-
-| Endpoint | Metode | Beskrivelse |
-|----------|--------|-------------|
-| `/api/finance/invoice/GetKeys` | POST | Hent faktura IDs |
-| `/api/finance/invoice/GetRange` | POST | Hent fakturaer |
-| `/api/finance/invoice/GetGrouping` | POST | Hent grupperet |
-| `/api/finance/invoice/Create` | POST | Opret faktura |
-| `/api/finance/invoice/Update` | POST | Opdater faktura |
-| `/api/finance/invoice/UpdateMultiple` | PATCH | Batch opdater |
-| `/api/finance/invoice/{id}/pdf` | GET | Download PDF |
-
-→ Se [tools/api/finance.md](tools/api/finance.md) for detaljer
-
-### Custom Fields
-
-| Endpoint | Metode | Beskrivelse |
-|----------|--------|-------------|
-| `/api/customField/GetSections` | GET | Hent sektioner |
-| `/api/customField/GetDefinitions` | GET | Hent feltdefinitioner |
-| `/api/customField/GetEntityFields` | GET | Hent værdier for entitet |
-| `/api/customField/SetValue` | POST | Sæt enkelt værdi |
-| `/api/customField/BulkSetValues` | POST | Sæt flere værdier |
-
-→ Se [tools/mcp/customfields.unified.md](tools/mcp/customfields.unified.md) for MCP integration
-
----
-
-## Observability & Tracing
-
-MCP Server uses Served.SDK for distributed tracing via OpenTelemetry.
-
-### Configuration
+### Option 1: Clone & Run
 
 ```bash
-# Enable tracing via environment variables
+# Clone the repo
+git clone https://github.com/Served-AI/Served.MCP.git
+cd served-mcp
+
+# Run directly
+dotnet run
+
+# Or build and run
+dotnet build -c Release
+./bin/Release/net10.0/Served.MCP
+```
+
+### Option 2: Docker
+
+```bash
+docker run -e SERVED_TOKEN=xxx -e SERVED_TENANT=yyy ghcr.io/unifiedhq/served-mcp:latest
+```
+
+### Option 3: From Source (ServedApp)
+
+If you have the full ServedApp repository:
+
+```bash
+cd ServedApp/Served.MCP
+dotnet run
+```
+
+---
+
+## Configuration
+
+### Environment Variables
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `SERVED_API_URL` | API base URL | `https://apis.unifiedhq.ai` |
+| `SERVED_TOKEN` | Your API token | - |
+| `SERVED_TENANT` | Workspace slug | - |
+| `SERVED_MCP_TRACING` | Enable tracing | `false` |
+| `FORGE_API_KEY` | Forge platform API key | - |
+
+### Enable Tracing
+
+```bash
 export SERVED_MCP_TRACING=true
 export FORGE_API_KEY="your-forge-api-key"
-
-# Or for OTLP collector
-export OTEL_EXPORTER_OTLP_ENDPOINT="http://localhost:4317"
 ```
+
+View your traces at [forge.unifiedhq.ai/analytics](https://forge.unifiedhq.ai/analytics)
+
+---
+
+## MCP Tools Overview
+
+### Context Tools
+
+| Tool | Description |
+|------|-------------|
+| `GetUserContext` | Get user profile and workspaces. **Call this first.** |
+| `GetTenantContext` | Get detailed tenant info (settings, categories). |
+| `GetProjectContext` | Get project with tasks, team and recent activity. |
+
+### Project Management
+
+| Tool | Description |
+|------|-------------|
+| `GetProjects` | List all projects for workspace |
+| `GetProjectDetails` | Get detailed project information |
+| `CreateProject` | Create new project |
+| `UpdateProject` | Update existing project |
+| `DeleteProject` | Delete project |
+
+### Task Management
+
+| Tool | Description |
+|------|-------------|
+| `GetTasks` | Get tasks for project |
+| `GetTaskDetails` | Get detailed task information |
+| `CreateTask` | Create new task |
+| `UpdateTask` | Update task |
+| `DeleteTask` | Delete task |
+| `CreateTasksBulk` | Bulk create tasks |
+
+### Time Tracking
+
+| Tool | Description |
+|------|-------------|
+| `SuggestTimeEntries` | AI suggestions for time registration |
+| `AnalyzeTimePatterns` | Analyze user's time patterns |
+
+### AI Intelligence
+
+| Tool | Description |
+|------|-------------|
+| `AnalyzeProjectHealth` | Health check with score, risks, recommendations |
+| `SuggestTaskDecomposition` | Suggestions for task breakdown |
+| `EstimateEffort` | AI estimate based on history |
+| `FindSimilarProjects` | Find similar projects |
+
+### DevOps
+
+| Tool | Description |
+|------|-------------|
+| `GetDevOpsRepositories` | List connected Git repos |
+| `GetPullRequests` | Get PRs for workspace or repository |
+| `GetPipelineRuns` | Get pipeline runs |
+| `GetJobLog` | Get log output from a job |
+
+See [tools/mcp/](tools/mcp/) for full documentation of all 40+ tools.
+
+---
+
+## Fork & Extend
+
+This MCP server is open source. Fork it to:
+
+1. **Add Custom Tools**: Extend with your own MCP tools
+2. **Custom Integrations**: Connect to additional services
+3. **Run Your Own Instance**: Host on your infrastructure
+
+```bash
+# Fork on GitHub, then:
+git clone https://github.com/YOUR_USERNAME/served-mcp.git
+cd served-mcp
+
+# Add your custom tools in tools/
+# Build and test
+dotnet build
+dotnet test
+
+# Run your customized version
+dotnet run
+```
+
+---
+
+## Observability
 
 ### What Gets Traced
 
@@ -399,60 +220,68 @@ Every tool call captures:
 | `mcp.tool.success` | Whether the call succeeded |
 | `mcp.session.id` | Session identifier |
 | `mcp.agent.id` | Agent identifier |
-| `mcp.conversation.turn` | Turn number in conversation |
-| `mcp.result.size` | Size of result payload |
 | Duration | Execution time in ms |
 
-### Metrics
+### View Analytics
 
-| Metric | Type | Labels |
-|--------|------|--------|
-| `mcp.tool.duration` | Histogram | tool_name, success |
-
-### Disable Tracking
-
-```bash
-export SERVED_MCP_TRACKING=false
-```
+- **Forge Dashboard**: [forge.unifiedhq.ai/analytics](https://forge.unifiedhq.ai/analytics)
+- **Your Workspace**: [unifiedhq.ai/app/analytics](https://unifiedhq.ai/app/analytics)
 
 ---
 
-## Miljøer
+## API Environments
 
-| Miljø | URL |
-|-------|-----|
-| Production | `https://app.served.dk` |
-| MCP Server | `https://app.served.dk/mcp` |
-| Local Dev | `http://localhost:5010` |
+| Environment | URL |
+|-------------|-----|
+| **Production** | `https://apis.unifiedhq.ai` |
+| **MCP Server** | `https://app.served.dk/mcp` |
+| **Local Dev** | `http://localhost:5010` |
 
 ## Authentication
+
+**MCP Tools:**
+OAuth with scopes: `projects`, `tasks`, `customers`, `calendar`, `timetracking`, `employees`, `intelligence`, `customfields`, `devops`
 
 **REST API:**
 ```
 Authorization: Bearer <JWT_TOKEN>
 ```
 
-**MCP:**
-OAuth med scopes: `projects`, `tasks`, `customers`, `calendar`, `timetracking`, `employees`, `intelligence`, `customfields`, `devops`
-
 ---
 
 ## Changelog
 
+### v2026.1.3 (2026-01-29)
+
+- **UnifiedHQ Integration** - All endpoints now use `apis.unifiedhq.ai`
+- **Forge Analytics** - Built-in tracing with dashboard support
+- **Fork Support** - GitHub Actions workflow for forks
+- **Documentation** - Complete overhaul with UnifiedHQ links
+
 ### v2026.1.2 (2026-01-17)
 
-- **Unified File Format** - All documentation converted to `.unified.md` format with YAML frontmatter
+- **Unified File Format** - All documentation converted to `.unified.md` format
 - **SDK Tracing** - Integrated with Served.SDK tracing infrastructure
 - **OpenTelemetry** - Tool calls now emit spans and metrics
-- **Forge Integration** - Native export to Forge observability platform
-- **Analytics** - Enhanced tool usage tracking with session context
-- **DevOps Enhancement** - Extended DevOps tools with pipeline jobs, logs, retry, and cancel
-- **File Tools** - Added local filesystem tools with tooling-auth protection
-- **JSON Schema** - Added `schemas/unified-v1.json` for format validation
+- **DevOps Enhancement** - Extended DevOps tools
 
 ### v2026.1.1
 
 - Initial MCP server implementation
 - 40+ tools for Served platform access
-- DevOps integration (repos, PRs, pipelines)
-- AI intelligence tools
+
+---
+
+## Support
+
+- **Documentation**: [unifiedhq.ai/docs](https://unifiedhq.ai/docs)
+- **Issues**: [GitHub Issues](https://github.com/Served-AI/Served.MCP/issues)
+- **Discord**: [UnifiedHQ Community](https://discord.gg/unifiedhq)
+
+## License
+
+MIT License - see [LICENSE](LICENSE) for details.
+
+---
+
+Built with love by [UnifiedHQ](https://unifiedhq.ai)
