@@ -11,16 +11,47 @@ using Served.SDK.Tracing;
 
 namespace Served.MCP;
 
+/// <summary>
+/// Tool definition with metadata for MCP protocol compliance.
+/// </summary>
+public class ToolDefinition
+{
+    public required string Name { get; set; }
+    public required string Description { get; set; }
+    public JObject InputSchema { get; set; } = new JObject
+    {
+        ["type"] = "object",
+        ["properties"] = new JObject(),
+        ["required"] = new JArray()
+    };
+    public required Func<JObject, Task<object>> Handler { get; set; }
+}
+
+/// <summary>
+/// MCP Server implementation following the Model Context Protocol specification.
+/// Supports stdio transport with JSON-RPC 2.0 messaging.
+///
+/// BRICK Philosophy:
+/// - Foundation: JSON-RPC protocol handling
+/// - Walls: Tool registration and execution
+/// - Roof: Tracing and analytics
+/// </summary>
 public class McpServer(ServedClient servedClient, string baseUrl, string token, string tenant)
 {
     private readonly ServedClient _servedClient = servedClient;
-    private readonly Dictionary<string, Func<JObject, Task<object>>> _tools = new();
+    private readonly Dictionary<string, ToolDefinition> _tools = new();
     private readonly HttpClient _httpClient = CreateHttpClient(baseUrl, token, tenant);
+
+    // Server metadata
+    private const string ServerName = "served-mcp";
+    private const string ServerVersion = "2026.2.0";
+    private const string ProtocolVersion = "2024-11-05";
 
     // Session tracking
     public string? SessionId { get; set; }
     public string? AgentId { get; set; }
     private int _conversationTurn = 0;
+    private bool _initialized = false;
 
     // Analytics tracking (now uses SDK tracing)
     private bool _trackingEnabled = true;
@@ -51,9 +82,31 @@ public class McpServer(ServedClient servedClient, string baseUrl, string token, 
 
     public HttpClient Http => _httpClient;
 
+    /// <summary>
+    /// Register a tool with full metadata (description and schema).
+    /// </summary>
+    public void RegisterTool(string name, string description, Func<JObject, Task<object>> handler, JObject? inputSchema = null)
+    {
+        _tools[name] = new ToolDefinition
+        {
+            Name = name,
+            Description = description,
+            Handler = handler,
+            InputSchema = inputSchema ?? new JObject
+            {
+                ["type"] = "object",
+                ["properties"] = new JObject(),
+                ["required"] = new JArray()
+            }
+        };
+    }
+
+    /// <summary>
+    /// Register a tool (backwards compatible - auto-generates description).
+    /// </summary>
     public void RegisterTool(string name, Func<JObject, Task<object>> handler)
     {
-        _tools[name] = handler;
+        RegisterTool(name, $"Execute the {name} operation", handler);
     }
 
     /// <summary>
@@ -127,7 +180,7 @@ public class McpServer(ServedClient servedClient, string baseUrl, string token, 
                 ["resultSize"] = resultSize,
                 ["errorType"] = errorType,
                 ["machineId"] = GetMachineIdHash(),
-                ["cliVersion"] = "mcp-2026.1.2",
+                ["cliVersion"] = $"mcp-{ServerVersion}",
                 ["workingDirectory"] = NormalizeWorkingDirectory(Directory.GetCurrentDirectory())
             };
 
@@ -182,8 +235,10 @@ public class McpServer(ServedClient servedClient, string baseUrl, string token, 
 
     public async Task RunAsync()
     {
-        Console.Error.WriteLine("Served MCP Server Started. Waiting for input...");
-        
+        Console.Error.WriteLine($"Served MCP Server v{ServerVersion} Started. Waiting for input...");
+        Console.Error.WriteLine($"Protocol Version: {ProtocolVersion}");
+        Console.Error.WriteLine($"Registered Tools: {_tools.Count}");
+
         using var stdin = Console.OpenStandardInput();
         using var reader = new StreamReader(stdin);
 
@@ -209,80 +264,211 @@ public class McpServer(ServedClient servedClient, string baseUrl, string token, 
         var id = request["id"]?.ToString();
         var method = request["method"]?.ToString();
 
-        if (method == "tools/list")
+        switch (method)
         {
-            var response = new
-            {
-                jsonrpc = "2.0",
-                id,
-                result = new
-                {
-                    tools = _tools.Keys.Select(k => new { name = k }).ToList()
-                }
-            };
-            SendResponse(response);
+            case "initialize":
+                HandleInitialize(id, request);
+                break;
+
+            case "initialized":
+                // Client acknowledgment - no response needed
+                _initialized = true;
+                Console.Error.WriteLine("MCP session initialized.");
+                break;
+
+            case "tools/list":
+                HandleToolsList(id);
+                break;
+
+            case "tools/call":
+                await HandleToolCall(id, request);
+                break;
+
+            case "resources/list":
+                HandleResourcesList(id);
+                break;
+
+            case "prompts/list":
+                HandlePromptsList(id);
+                break;
+
+            case "ping":
+                HandlePing(id);
+                break;
+
+            default:
+                SendError(id, -32601, $"Method '{method}' not found.");
+                break;
         }
-        else if (method == "tools/call")
+    }
+
+    /// <summary>
+    /// Handle MCP initialize request.
+    /// </summary>
+    private void HandleInitialize(string? id, JObject request)
+    {
+        var paramsObj = request["params"] as JObject;
+        var clientInfo = paramsObj?["clientInfo"];
+
+        Console.Error.WriteLine($"Client connected: {clientInfo?["name"]} v{clientInfo?["version"]}");
+
+        var response = new
         {
-            var paramsObj = request["params"] as JObject;
-            var toolName = paramsObj?["name"]?.ToString();
-            var arguments = paramsObj?["arguments"] as JObject ?? new JObject();
-
-            if (toolName != null && _tools.TryGetValue(toolName, out var handler))
+            jsonrpc = "2.0",
+            id,
+            result = new
             {
-                // Create tracing span for the tool call
-                using var span = Tracer?.StartSpan($"mcp.tool.{toolName}", SpanKind.Server);
-                span?.SetAttribute("mcp.tool.name", toolName);
-                span?.SetAttribute("mcp.session.id", SessionId ?? "");
-                span?.SetAttribute("mcp.conversation.turn", _conversationTurn + 1);
-
-                var stopwatch = Stopwatch.StartNew();
-                try
+                protocolVersion = ProtocolVersion,
+                capabilities = new
                 {
-                    var result = await handler(arguments);
-                    stopwatch.Stop();
+                    tools = new { listChanged = false },
+                    resources = new { subscribe = false, listChanged = false },
+                    prompts = new { listChanged = false },
+                    logging = new { }
+                },
+                serverInfo = new
+                {
+                    name = ServerName,
+                    version = ServerVersion
+                },
+                instructions = "Served MCP Server provides access to the Served platform - projects, tasks, time tracking, analytics, and more. Use GetUserContext first to understand which workspaces you have access to."
+            }
+        };
+        SendResponse(response);
+    }
 
-                    var resultJson = JsonConvert.SerializeObject(result, Formatting.Indented);
+    /// <summary>
+    /// Handle tools/list request with full metadata.
+    /// </summary>
+    private void HandleToolsList(string? id)
+    {
+        var tools = _tools.Values.Select(t => new
+        {
+            name = t.Name,
+            description = t.Description,
+            inputSchema = t.InputSchema
+        }).ToList();
 
-                    span?.SetAttribute("mcp.result.size", resultJson.Length);
-                    span?.SetAttribute("mcp.success", true);
+        var response = new
+        {
+            jsonrpc = "2.0",
+            id,
+            result = new { tools }
+        };
+        SendResponse(response);
+    }
 
-                    // Track successful tool call
-                    _ = TrackToolCallAsync(toolName, arguments, true, stopwatch.ElapsedMilliseconds, null, resultJson.Length);
+    /// <summary>
+    /// Handle tools/call request.
+    /// </summary>
+    private async Task HandleToolCall(string? id, JObject request)
+    {
+        var paramsObj = request["params"] as JObject;
+        var toolName = paramsObj?["name"]?.ToString();
+        var arguments = paramsObj?["arguments"] as JObject ?? new JObject();
 
-                    var response = new
+        if (toolName != null && _tools.TryGetValue(toolName, out var toolDef))
+        {
+            // Create tracing span for the tool call
+            using var span = Tracer?.StartSpan($"mcp.tool.{toolName}", SpanKind.Server);
+            span?.SetAttribute("mcp.tool.name", toolName);
+            span?.SetAttribute("mcp.session.id", SessionId ?? "");
+            span?.SetAttribute("mcp.conversation.turn", _conversationTurn + 1);
+
+            var stopwatch = Stopwatch.StartNew();
+            try
+            {
+                var result = await toolDef.Handler(arguments);
+                stopwatch.Stop();
+
+                var resultJson = JsonConvert.SerializeObject(result, Formatting.Indented);
+
+                span?.SetAttribute("mcp.result.size", resultJson.Length);
+                span?.SetAttribute("mcp.success", true);
+
+                // Track successful tool call
+                _ = TrackToolCallAsync(toolName, arguments, true, stopwatch.ElapsedMilliseconds, null, resultJson.Length);
+
+                var response = new
+                {
+                    jsonrpc = "2.0",
+                    id,
+                    result = new
                     {
-                        jsonrpc = "2.0",
-                        id,
-                        result = new
+                        content = new[]
                         {
-                            content = new[]
-                            {
-                                new { type = "text", text = resultJson }
-                            }
+                            new { type = "text", text = resultJson }
                         }
-                    };
-                    SendResponse(response);
-                }
-                catch (Exception ex)
-                {
-                    stopwatch.Stop();
-
-                    span?.SetError(true);
-                    span?.SetAttribute("mcp.success", false);
-                    span?.RecordException(ex);
-
-                    // Track failed tool call
-                    _ = TrackToolCallAsync(toolName, arguments, false, stopwatch.ElapsedMilliseconds, ex.GetType().Name);
-
-                    SendError(id, -32603, ex.Message);
-                }
+                    }
+                };
+                SendResponse(response);
             }
-            else
+            catch (Exception ex)
             {
-                SendError(id, -32601, $"Tool '{toolName}' not found.");
+                stopwatch.Stop();
+
+                span?.SetError(true);
+                span?.SetAttribute("mcp.success", false);
+                span?.RecordException(ex);
+
+                // Track failed tool call
+                _ = TrackToolCallAsync(toolName, arguments, false, stopwatch.ElapsedMilliseconds, ex.GetType().Name);
+
+                SendError(id, -32603, ex.Message);
             }
         }
+        else
+        {
+            SendError(id, -32601, $"Tool '{toolName}' not found. Use tools/list to see available tools.");
+        }
+    }
+
+    /// <summary>
+    /// Handle resources/list request (empty for now).
+    /// </summary>
+    private void HandleResourcesList(string? id)
+    {
+        var response = new
+        {
+            jsonrpc = "2.0",
+            id,
+            result = new
+            {
+                resources = Array.Empty<object>()
+            }
+        };
+        SendResponse(response);
+    }
+
+    /// <summary>
+    /// Handle prompts/list request (empty for now).
+    /// </summary>
+    private void HandlePromptsList(string? id)
+    {
+        var response = new
+        {
+            jsonrpc = "2.0",
+            id,
+            result = new
+            {
+                prompts = Array.Empty<object>()
+            }
+        };
+        SendResponse(response);
+    }
+
+    /// <summary>
+    /// Handle ping request.
+    /// </summary>
+    private void HandlePing(string? id)
+    {
+        var response = new
+        {
+            jsonrpc = "2.0",
+            id,
+            result = new { }
+        };
+        SendResponse(response);
     }
 
     private void SendResponse(object response)
