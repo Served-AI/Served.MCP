@@ -5,7 +5,7 @@
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <Version>2026.2.0</Version>
+    <!-- Version inherited from Directory.Build.props -->
     <AssemblyTitle>Served MCP Server</AssemblyTitle>
     <Description>MCP Server for AI assistants to interact with the Served platform via UnifiedHQ</Description>
     <Authors>UnifiedHQ, Thomas Helledi</Authors>
