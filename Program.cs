@@ -83,6 +83,18 @@ Console.Error.WriteLine($"[MCP] Registered infrastructure tools");
 MediaTools.Register(server, client);
 Console.Error.WriteLine($"[MCP] Registered media analytics tools");
 
+// Grouping - Hierarchical project/task groupBy views
+GroupingTools.Register(server, client);
+Console.Error.WriteLine($"[MCP] Registered grouping tools");
+
+// Notes - Obsidian vault access for Atlas
+NotesTools.Register(server, client);
+Console.Error.WriteLine($"[MCP] Registered notes/vault tools");
+
+// Billing - SaaS plan catalog, subscriptions, funnel analytics
+BillingTools.Register(server, client);
+Console.Error.WriteLine($"[MCP] Registered billing tools");
+
 // ----------------------------------------------------------------------
 // Start the server
 // ----------------------------------------------------------------------

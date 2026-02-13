@@ -1,0 +1,7716 @@
+[
+  {
+    "name": "GetAgreements",
+    "description": "List service agreements/contracts with dates, customer, and status.",
+    "category": "Agreements",
+    "inputSchema": {
+      "type": [],
+      "properties": [
+        [
+          [
+            [
+              []
+            ],
+            [
+              [
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ]
+              ]
+            ],
+            [
+              []
+            ]
+          ]
+        ]
+      ],
+      "required": []
+    },
+    "isDangerous": false,
+    "sdkMethod": "IAgreementClient.GetAllAsync"
+  },
+  {
+    "name": "GetAgreementDetails",
+    "description": "Get detailed information about a specific agreement.",
+    "category": "Agreements",
+    "inputSchema": {
+      "type": [],
+      "properties": [
+        [
+          [
+            [
+              []
+            ],
+            [
+              []
+            ]
+          ]
+        ]
+      ],
+      "required": [
+        []
+      ]
+    },
+    "isDangerous": false,
+    "sdkMethod": "IAgreementClient.GetAsync"
+  },
+  {
+    "name": "CreateAgreement",
+    "description": "Create a new agreement.",
+    "category": "Agreements",
+    "inputSchema": {
+      "type": [],
+      "properties": [
+        [
+          [
+            [
+              []
+            ],
+            [
+              [
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ]
+              ]
+            ],
+            [
+              []
+            ]
+          ]
+        ]
+      ],
+      "required": [
+        []
+      ]
+    },
+    "isDangerous": false,
+    "sdkMethod": "IAgreementClient.CreateAsync"
+  },
+  {
+    "name": "UpdateAgreement",
+    "description": "Update an existing agreement.",
+    "category": "Agreements",
+    "inputSchema": {
+      "type": [],
+      "properties": [
+        [
+          [
+            [
+              []
+            ],
+            [
+              []
+            ]
+          ]
+        ],
+        [
+          [
+            [
+              []
+            ],
+            [
+              [
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ]
+              ]
+            ],
+            [
+              []
+            ]
+          ]
+        ]
+      ],
+      "required": [
+        [],
+        []
+      ]
+    },
+    "isDangerous": false,
+    "sdkMethod": "IAgreementClient.UpdateAsync"
+  },
+  {
+    "name": "DeleteAgreement",
+    "description": "Delete a agreement. This action cannot be undone.",
+    "category": "Agreements",
+    "inputSchema": {
+      "type": [],
+      "properties": [
+        [
+          [
+            [
+              []
+            ],
+            [
+              []
+            ]
+          ]
+        ]
+      ],
+      "required": [
+        []
+      ]
+    },
+    "isDangerous": true,
+    "sdkMethod": "IAgreementClient.DeleteAsync"
+  },
+  {
+    "name": "AgreementGetByCustomer",
+    "description": "Get agreements filtered by customer.",
+    "category": "Agreements",
+    "inputSchema": {
+      "type": [],
+      "properties": [
+        [
+          [
+            [
+              []
+            ],
+            [
+              []
+            ]
+          ]
+        ],
+        [
+          [
+            [
+              []
+            ],
+            [
+              []
+            ]
+          ]
+        ]
+      ],
+      "required": [
+        [],
+        []
+      ]
+    },
+    "isDangerous": false,
+    "sdkMethod": "IAgreementClient.GetByCustomerAsync"
+  },
+  {
+    "name": "AgreementGetByDateRange",
+    "description": "Get agreements filtered by date range.",
+    "category": "Agreements",
+    "inputSchema": {
+      "type": [],
+      "properties": [
+        [
+          [
+            [
+              []
+            ],
+            [
+              []
+            ],
+            [
+              []
+            ]
+          ]
+        ],
+        [
+          [
+            [
+              []
+            ],
+            [
+              []
+            ],
+            [
+              []
+            ]
+          ]
+        ],
+        [
+          [
+            [
+              []
+            ],
+            [
+              []
+            ]
+          ]
+        ]
+      ],
+      "required": [
+        [],
+        [],
+        []
+      ]
+    },
+    "isDangerous": false,
+    "sdkMethod": "IAgreementClient.GetByDateRangeAsync"
+  },
+  {
+    "name": "GetApiKeys",
+    "description": "List all apikeys in the workspace.",
+    "category": "ApiKeys",
+    "inputSchema": {
+      "type": [],
+      "properties": [],
+      "required": []
+    },
+    "isDangerous": false,
+    "sdkMethod": "IApiKeyClient.ListAsync"
+  },
+  {
+    "name": "CreateApiKey",
+    "description": "Create a new apikey.",
+    "category": "ApiKeys",
+    "inputSchema": {
+      "type": [],
+      "properties": [
+        [
+          [
+            [
+              []
+            ],
+            [
+              []
+            ]
+          ]
+        ],
+        [
+          [
+            [
+              []
+            ],
+            [
+              [
+                [
+                  []
+                ]
+              ]
+            ],
+            [
+              []
+            ]
+          ]
+        ],
+        [
+          [
+            [
+              []
+            ],
+            [
+              []
+            ],
+            [
+              []
+            ]
+          ]
+        ]
+      ],
+      "required": [
+        [],
+        []
+      ]
+    },
+    "isDangerous": false,
+    "sdkMethod": "IApiKeyClient.CreateAsync"
+  },
+  {
+    "name": "ApiKeyGetScopes",
+    "description": "Get scopes for the apikey.",
+    "category": "ApiKeys",
+    "inputSchema": {
+      "type": [],
+      "properties": [],
+      "required": []
+    },
+    "isDangerous": false,
+    "sdkMethod": "IApiKeyClient.GetScopesAsync"
+  },
+  {
+    "name": "BoardGetBoards",
+    "description": "List all boards (spreadsheet-like data tables) in the workspace.",
+    "category": "Boards",
+    "inputSchema": {
+      "type": [],
+      "properties": [],
+      "required": []
+    },
+    "isDangerous": false,
+    "sdkMethod": "IBoardClient.GetBoardsAsync"
+  },
+  {
+    "name": "BoardGetBoard",
+    "description": "Get board for the board.",
+    "category": "Boards",
+    "inputSchema": {
+      "type": [],
+      "properties": [
+        [
+          [
+            [
+              []
+            ],
+            [
+              []
+            ]
+          ]
+        ]
+      ],
+      "required": [
+        []
+      ]
+    },
+    "isDangerous": false,
+    "sdkMethod": "IBoardClient.GetBoardAsync"
+  },
+  {
+    "name": "BoardGetBoardKeys",
+    "description": "Get board keys for the board.",
+    "category": "Boards",
+    "inputSchema": {
+      "type": [],
+      "properties": [],
+      "required": []
+    },
+    "isDangerous": false,
+    "sdkMethod": "IBoardClient.GetBoardKeysAsync"
+  },
+  {
+    "name": "BoardCreateBoard",
+    "description": "Create a new board.",
+    "category": "Boards",
+    "inputSchema": {
+      "type": [],
+      "properties": [
+        [
+          [
+            [
+              []
+            ],
+            [
+              [
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ]
+              ]
+            ],
+            [
+              []
+            ]
+          ]
+        ]
+      ],
+      "required": [
+        []
+      ]
+    },
+    "isDangerous": false,
+    "sdkMethod": "IBoardClient.CreateBoardAsync"
+  },
+  {
+    "name": "BoardUpdateBoard",
+    "description": "Update an existing board.",
+    "category": "Boards",
+    "inputSchema": {
+      "type": [],
+      "properties": [
+        [
+          [
+            [
+              []
+            ],
+            [
+              [
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ]
+              ]
+            ],
+            [
+              []
+            ]
+          ]
+        ]
+      ],
+      "required": [
+        []
+      ]
+    },
+    "isDangerous": false,
+    "sdkMethod": "IBoardClient.UpdateBoardAsync"
+  },
+  {
+    "name": "BoardDeleteBoard",
+    "description": "Delete a board. This action cannot be undone.",
+    "category": "Boards",
+    "inputSchema": {
+      "type": [],
+      "properties": [
+        [
+          [
+            [
+              []
+            ],
+            [
+              []
+            ]
+          ]
+        ]
+      ],
+      "required": [
+        []
+      ]
+    },
+    "isDangerous": true,
+    "sdkMethod": "IBoardClient.DeleteBoardAsync"
+  },
+  {
+    "name": "BoardGetSheets",
+    "description": "List sheets within a board.",
+    "category": "Boards",
+    "inputSchema": {
+      "type": [],
+      "properties": [],
+      "required": []
+    },
+    "isDangerous": false,
+    "sdkMethod": "IBoardClient.GetSheetsAsync"
+  },
+  {
+    "name": "BoardGetSheet",
+    "description": "Get sheet for the board.",
+    "category": "Boards",
+    "inputSchema": {
+      "type": [],
+      "properties": [
+        [
+          [
+            [
+              []
+            ],
+            [
+              []
+            ]
+          ]
+        ]
+      ],
+      "required": [
+        []
+      ]
+    },
+    "isDangerous": false,
+    "sdkMethod": "IBoardClient.GetSheetAsync"
+  },
+  {
+    "name": "BoardGetSheetByClaimId",
+    "description": "Get sheet filtered by claim id.",
+    "category": "Boards",
+    "inputSchema": {
+      "type": [],
+      "properties": [
+        [
+          [
+            [
+              []
+            ],
+            [
+              []
+            ]
+          ]
+        ]
+      ],
+      "required": [
+        []
+      ]
+    },
+    "isDangerous": false,
+    "sdkMethod": "IBoardClient.GetSheetByClaimIdAsync"
+  },
+  {
+    "name": "BoardCreateSheet",
+    "description": "Create a new board.",
+    "category": "Boards",
+    "inputSchema": {
+      "type": [],
+      "properties": [
+        [
+          [
+            [
+              []
+            ],
+            [
+              [
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ]
+              ]
+            ],
+            [
+              []
+            ]
+          ]
+        ]
+      ],
+      "required": [
+        []
+      ]
+    },
+    "isDangerous": false,
+    "sdkMethod": "IBoardClient.CreateSheetAsync"
+  },
+  {
+    "name": "BoardUpdateSheet",
+    "description": "Update an existing board.",
+    "category": "Boards",
+    "inputSchema": {
+      "type": [],
+      "properties": [
+        [
+          [
+            [
+              []
+            ],
+            [
+              [
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ]
+              ]
+            ],
+            [
+              []
+            ]
+          ]
+        ]
+      ],
+      "required": [
+        []
+      ]
+    },
+    "isDangerous": false,
+    "sdkMethod": "IBoardClient.UpdateSheetAsync"
+  },
+  {
+    "name": "BoardDeleteSheet",
+    "description": "Delete a board. This action cannot be undone.",
+    "category": "Boards",
+    "inputSchema": {
+      "type": [],
+      "properties": [
+        [
+          [
+            [
+              []
+            ],
+            [
+              []
+            ]
+          ]
+        ]
+      ],
+      "required": [
+        []
+      ]
+    },
+    "isDangerous": true,
+    "sdkMethod": "IBoardClient.DeleteSheetAsync"
+  },
+  {
+    "name": "BoardGetColumns",
+    "description": "Get columns for the board.",
+    "category": "Boards",
+    "inputSchema": {
+      "type": [],
+      "properties": [
+        [
+          [
+            [
+              []
+            ],
+            [
+              []
+            ]
+          ]
+        ]
+      ],
+      "required": [
+        []
+      ]
+    },
+    "isDangerous": false,
+    "sdkMethod": "IBoardClient.GetColumnsAsync"
+  },
+  {
+    "name": "BoardDeleteColumn",
+    "description": "Delete a board. This action cannot be undone.",
+    "category": "Boards",
+    "inputSchema": {
+      "type": [],
+      "properties": [
+        [
+          [
+            [
+              []
+            ],
+            [
+              []
+            ]
+          ]
+        ]
+      ],
+      "required": [
+        []
+      ]
+    },
+    "isDangerous": true,
+    "sdkMethod": "IBoardClient.DeleteColumnAsync"
+  },
+  {
+    "name": "BoardGetRows",
+    "description": "Get rows of data from a board sheet.",
+    "category": "Boards",
+    "inputSchema": {
+      "type": [],
+      "properties": [
+        [
+          [
+            [
+              []
+            ],
+            [
+              []
+            ]
+          ]
+        ],
+        [
+          [
+            [
+              []
+            ],
+            [
+              []
+            ]
+          ]
+        ],
+        [
+          [
+            [
+              []
+            ],
+            [
+              []
+            ]
+          ]
+        ]
+      ],
+      "required": [
+        [],
+        [],
+        []
+      ]
+    },
+    "isDangerous": false,
+    "sdkMethod": "IBoardClient.GetRowsAsync"
+  },
+  {
+    "name": "BoardDeleteRow",
+    "description": "Delete a board. This action cannot be undone.",
+    "category": "Boards",
+    "inputSchema": {
+      "type": [],
+      "properties": [
+        [
+          [
+            [
+              []
+            ],
+            [
+              []
+            ]
+          ]
+        ],
+        [
+          [
+            [
+              []
+            ],
+            [
+              []
+            ]
+          ]
+        ]
+      ],
+      "required": [
+        []
+      ]
+    },
+    "isDangerous": true,
+    "sdkMethod": "IBoardClient.DeleteRowAsync"
+  },
+  {
+    "name": "BoardGetCell",
+    "description": "Get cell for the board.",
+    "category": "Boards",
+    "inputSchema": {
+      "type": [],
+      "properties": [
+        [
+          [
+            [
+              []
+            ],
+            [
+              []
+            ]
+          ]
+        ],
+        [
+          [
+            [
+              []
+            ],
+            [
+              []
+            ]
+          ]
+        ]
+      ],
+      "required": [
+        [],
+        []
+      ]
+    },
+    "isDangerous": false,
+    "sdkMethod": "IBoardClient.GetCellAsync"
+  },
+  {
+    "name": "BoardGetCellsForRow",
+    "description": "Get cells for a specific row.",
+    "category": "Boards",
+    "inputSchema": {
+      "type": [],
+      "properties": [
+        [
+          [
+            [
+              []
+            ],
+            [
+              []
+            ]
+          ]
+        ]
+      ],
+      "required": [
+        []
+      ]
+    },
+    "isDangerous": false,
+    "sdkMethod": "IBoardClient.GetCellsForRowAsync"
+  },
+  {
+    "name": "BoardGetCellsForColumn",
+    "description": "Get cells for a specific column.",
+    "category": "Boards",
+    "inputSchema": {
+      "type": [],
+      "properties": [
+        [
+          [
+            [
+              []
+            ],
+            [
+              []
+            ]
+          ]
+        ]
+      ],
+      "required": [
+        []
+      ]
+    },
+    "isDangerous": false,
+    "sdkMethod": "IBoardClient.GetCellsForColumnAsync"
+  },
+  {
+    "name": "BoardGetViews",
+    "description": "Get views for the board.",
+    "category": "Boards",
+    "inputSchema": {
+      "type": [],
+      "properties": [
+        [
+          [
+            [
+              []
+            ],
+            [
+              []
+            ]
+          ]
+        ]
+      ],
+      "required": [
+        []
+      ]
+    },
+    "isDangerous": false,
+    "sdkMethod": "IBoardClient.GetViewsAsync"
+  },
+  {
+    "name": "BoardDeleteView",
+    "description": "Delete a board. This action cannot be undone.",
+    "category": "Boards",
+    "inputSchema": {
+      "type": [],
+      "properties": [
+        [
+          [
+            [
+              []
+            ],
+            [
+              []
+            ]
+          ]
+        ]
+      ],
+      "required": [
+        []
+      ]
+    },
+    "isDangerous": true,
+    "sdkMethod": "IBoardClient.DeleteViewAsync"
+  },
+  {
+    "name": "BootstrapGetUser",
+    "description": "Get current authenticated user profile with tenants and permissions.",
+    "category": "Bootstraps",
+    "inputSchema": {
+      "type": [],
+      "properties": [],
+      "required": []
+    },
+    "isDangerous": false,
+    "sdkMethod": "IBootstrapClient.GetUserAsync"
+  },
+  {
+    "name": "BootstrapGetTenant",
+    "description": "Get tenant (organization) details including features and settings.",
+    "category": "Bootstraps",
+    "inputSchema": {
+      "type": [],
+      "properties": [
+        [
+          [
+            [
+              []
+            ],
+            [
+              []
+            ]
+          ]
+        ]
+      ],
+      "required": [
+        []
+      ]
+    },
+    "isDangerous": false,
+    "sdkMethod": "IBootstrapClient.GetTenantAsync"
+  },
+  {
+    "name": "BootstrapGetWorkspace",
+    "description": "Get workspace configuration with enabled modules and member count.",
+    "category": "Bootstraps",
+    "inputSchema": {
+      "type": [],
+      "properties": [
+        [
+          [
+            [
+              []
+            ],
+            [
+              []
+            ]
+          ]
+        ],
+        [
+          [
+            [
+              []
+            ],
+            [
+              []
+            ]
+          ]
+        ]
+      ],
+      "required": [
+        [],
+        []
+      ]
+    },
+    "isDangerous": false,
+    "sdkMethod": "IBootstrapClient.GetWorkspaceAsync"
+  },
+  {
+    "name": "GetCustomers",
+    "description": "List all customers/contacts in the workspace with name, email, phone, and business type.",
+    "category": "Customers",
+    "inputSchema": {
+      "type": [],
+      "properties": [
+        [
+          [
+            [
+              []
+            ],
+            [
+              [
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ]
+              ]
+            ],
+            [
+              []
+            ]
+          ]
+        ]
+      ],
+      "required": []
+    },
+    "isDangerous": false,
+    "sdkMethod": "ICustomerClient.GetAllAsync"
+  },
+  {
+    "name": "GetCustomerDetails",
+    "description": "Get detailed information about a specific customer.",
+    "category": "Customers",
+    "inputSchema": {
+      "type": [],
+      "properties": [
+        [
+          [
+            [
+              []
+            ],
+            [
+              []
+            ]
+          ]
+        ]
+      ],
+      "required": [
+        []
+      ]
+    },
+    "isDangerous": false,
+    "sdkMethod": "ICustomerClient.GetAsync"
+  },
+  {
+    "name": "CreateCustomer",
+    "description": "Create a new customer.",
+    "category": "Customers",
+    "inputSchema": {
+      "type": [],
+      "properties": [
+        [
+          [
+            [
+              []
+            ],
+            [
+              [
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ]
+              ]
+            ],
+            [
+              []
+            ]
+          ]
+        ]
+      ],
+      "required": [
+        []
+      ]
+    },
+    "isDangerous": false,
+    "sdkMethod": "ICustomerClient.CreateAsync"
+  },
+  {
+    "name": "UpdateCustomer",
+    "description": "Update an existing customer.",
+    "category": "Customers",
+    "inputSchema": {
+      "type": [],
+      "properties": [
+        [
+          [
+            [
+              []
+            ],
+            [
+              []
+            ]
+          ]
+        ],
+        [
+          [
+            [
+              []
+            ],
+            [
+              [
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ]
+              ]
+            ],
+            [
+              []
+            ]
+          ]
+        ]
+      ],
+      "required": [
+        [],
+        []
+      ]
+    },
+    "isDangerous": false,
+    "sdkMethod": "ICustomerClient.UpdateAsync"
+  },
+  {
+    "name": "DeleteCustomer",
+    "description": "Delete a customer. This action cannot be undone.",
+    "category": "Customers",
+    "inputSchema": {
+      "type": [],
+      "properties": [
+        [
+          [
+            [
+              []
+            ],
+            [
+              []
+            ]
+          ]
+        ]
+      ],
+      "required": [
+        []
+      ]
+    },
+    "isDangerous": true,
+    "sdkMethod": "ICustomerClient.DeleteAsync"
+  },
+  {
+    "name": "CustomerCreateBulk",
+    "description": "Bulk create multiple customers at once.",
+    "category": "Customers",
+    "inputSchema": {
+      "type": [],
+      "properties": [
+        [
+          [
+            [
+              []
+            ],
+            [
+              [
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ]
+              ]
+            ],
+            [
+              []
+            ]
+          ]
+        ]
+      ],
+      "required": [
+        []
+      ]
+    },
+    "isDangerous": true,
+    "sdkMethod": "ICustomerClient.CreateBulkAsync"
+  },
+  {
+    "name": "CustomerUpdateBulk",
+    "description": "Bulk update multiple customers at once.",
+    "category": "Customers",
+    "inputSchema": {
+      "type": [],
+      "properties": [
+        [
+          [
+            [
+              []
+            ],
+            [
+              [
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ]
+              ]
+            ],
+            [
+              []
+            ]
+          ]
+        ]
+      ],
+      "required": [
+        []
+      ]
+    },
+    "isDangerous": true,
+    "sdkMethod": "ICustomerClient.UpdateBulkAsync"
+  },
+  {
+    "name": "CustomerDeleteBulk",
+    "description": "Bulk delete multiple customers at once.",
+    "category": "Customers",
+    "inputSchema": {
+      "type": [],
+      "properties": [
+        [
+          [
+            [
+              []
+            ],
+            [
+              [
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ]
+              ]
+            ],
+            [
+              []
+            ]
+          ]
+        ]
+      ],
+      "required": [
+        []
+      ]
+    },
+    "isDangerous": true,
+    "sdkMethod": "ICustomerClient.DeleteBulkAsync"
+  },
+  {
+    "name": "CustomerGetRange",
+    "description": "Get customers by a range of IDs.",
+    "category": "Customers",
+    "inputSchema": {
+      "type": [],
+      "properties": [
+        [
+          [
+            [
+              []
+            ],
+            [
+              [
+                [
+                  []
+                ]
+              ]
+            ],
+            [
+              []
+            ]
+          ]
+        ]
+      ],
+      "required": [
+        []
+      ]
+    },
+    "isDangerous": false,
+    "sdkMethod": "ICustomerClient.GetRangeAsync"
+  },
+  {
+    "name": "SearchCustomers",
+    "description": "Search customers by name, email, or phone number.",
+    "category": "Customers",
+    "inputSchema": {
+      "type": [],
+      "properties": [
+        [
+          [
+            [
+              []
+            ],
+            [
+              []
+            ]
+          ]
+        ],
+        [
+          [
+            [
+              []
+            ],
+            [
+              []
+            ]
+          ]
+        ]
+      ],
+      "required": [
+        [],
+        []
+      ]
+    },
+    "isDangerous": false,
+    "sdkMethod": "ICustomerClient.SearchAsync"
+  },
+  {
+    "name": "GetDashboards",
+    "description": "List available dashboards for the workspace.",
+    "category": "Dashboards",
+    "inputSchema": {
+      "type": [],
+      "properties": [],
+      "required": []
+    },
+    "isDangerous": false,
+    "sdkMethod": "IDashboardClient.GetAllAsync"
+  },
+  {
+    "name": "GetDashboardDetails",
+    "description": "Get detailed information about a specific dashboard.",
+    "category": "Dashboards",
+    "inputSchema": {
+      "type": [],
+      "properties": [
+        [
+          [
+            [
+              []
+            ],
+            [
+              []
+            ]
+          ]
+        ]
+      ],
+      "required": [
+        []
+      ]
+    },
+    "isDangerous": false,
+    "sdkMethod": "IDashboardClient.GetAsync"
+  },
+  {
+    "name": "DashboardGetDefault",
+    "description": "Get the default dashboard for the workspace.",
+    "category": "Dashboards",
+    "inputSchema": {
+      "type": [],
+      "properties": [],
+      "required": []
+    },
+    "isDangerous": false,
+    "sdkMethod": "IDashboardClient.GetDefaultAsync"
+  },
+  {
+    "name": "CreateDashboard",
+    "description": "Create a new dashboard.",
+    "category": "Dashboards",
+    "inputSchema": {
+      "type": [],
+      "properties": [
+        [
+          [
+            [
+              []
+            ],
+            [
+              [
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ]
+              ]
+            ],
+            [
+              []
+            ]
+          ]
+        ]
+      ],
+      "required": [
+        []
+      ]
+    },
+    "isDangerous": false,
+    "sdkMethod": "IDashboardClient.CreateAsync"
+  },
+  {
+    "name": "UpdateDashboard",
+    "description": "Update an existing dashboard.",
+    "category": "Dashboards",
+    "inputSchema": {
+      "type": [],
+      "properties": [
+        [
+          [
+            [
+              []
+            ],
+            [
+              []
+            ]
+          ]
+        ],
+        [
+          [
+            [
+              []
+            ],
+            [
+              [
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ]
+              ]
+            ],
+            [
+              []
+            ]
+          ]
+        ]
+      ],
+      "required": [
+        [],
+        []
+      ]
+    },
+    "isDangerous": false,
+    "sdkMethod": "IDashboardClient.UpdateAsync"
+  },
+  {
+    "name": "DeleteDashboard",
+    "description": "Delete a dashboard. This action cannot be undone.",
+    "category": "Dashboards",
+    "inputSchema": {
+      "type": [],
+      "properties": [
+        [
+          [
+            [
+              []
+            ],
+            [
+              []
+            ]
+          ]
+        ]
+      ],
+      "required": [
+        []
+      ]
+    },
+    "isDangerous": true,
+    "sdkMethod": "IDashboardClient.DeleteAsync"
+  },
+  {
+    "name": "DashboardGetWidgets",
+    "description": "Get widgets for the dashboard.",
+    "category": "Dashboards",
+    "inputSchema": {
+      "type": [],
+      "properties": [
+        [
+          [
+            [
+              []
+            ],
+            [
+              []
+            ]
+          ]
+        ]
+      ],
+      "required": [
+        []
+      ]
+    },
+    "isDangerous": false,
+    "sdkMethod": "IDashboardClient.GetWidgetsAsync"
+  },
+  {
+    "name": "DashboardGetWidget",
+    "description": "Get widget for the dashboard.",
+    "category": "Dashboards",
+    "inputSchema": {
+      "type": [],
+      "properties": [
+        [
+          [
+            [
+              []
+            ],
+            [
+              []
+            ]
+          ]
+        ],
+        [
+          [
+            [
+              []
+            ],
+            [
+              []
+            ]
+          ]
+        ]
+      ],
+      "required": [
+        [],
+        []
+      ]
+    },
+    "isDangerous": false,
+    "sdkMethod": "IDashboardClient.GetWidgetAsync"
+  },
+  {
+    "name": "DashboardUpdateWidget",
+    "description": "Update an existing dashboard.",
+    "category": "Dashboards",
+    "inputSchema": {
+      "type": [],
+      "properties": [
+        [
+          [
+            [
+              []
+            ],
+            [
+              []
+            ]
+          ]
+        ],
+        [
+          [
+            [
+              []
+            ],
+            [
+              []
+            ]
+          ]
+        ],
+        [
+          [
+            [
+              []
+            ],
+            [
+              [
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ]
+              ]
+            ],
+            [
+              []
+            ]
+          ]
+        ]
+      ],
+      "required": [
+        [],
+        [],
+        []
+      ]
+    },
+    "isDangerous": false,
+    "sdkMethod": "IDashboardClient.UpdateWidgetAsync"
+  },
+  {
+    "name": "DashboardDeleteWidget",
+    "description": "Delete a dashboard. This action cannot be undone.",
+    "category": "Dashboards",
+    "inputSchema": {
+      "type": [],
+      "properties": [
+        [
+          [
+            [
+              []
+            ],
+            [
+              []
+            ]
+          ]
+        ],
+        [
+          [
+            [
+              []
+            ],
+            [
+              []
+            ]
+          ]
+        ]
+      ],
+      "required": [
+        [],
+        []
+      ]
+    },
+    "isDangerous": true,
+    "sdkMethod": "IDashboardClient.DeleteWidgetAsync"
+  },
+  {
+    "name": "DashboardUpdateWidgetLayout",
+    "description": "Update an existing dashboard.",
+    "category": "Dashboards",
+    "inputSchema": {
+      "type": [],
+      "properties": [
+        [
+          [
+            [
+              []
+            ],
+            [
+              []
+            ]
+          ]
+        ],
+        [
+          [
+            [
+              []
+            ],
+            [
+              [
+                [
+                  []
+                ]
+              ]
+            ],
+            [
+              []
+            ]
+          ]
+        ]
+      ],
+      "required": [
+        [],
+        []
+      ]
+    },
+    "isDangerous": false,
+    "sdkMethod": "IDashboardClient.UpdateWidgetLayoutAsync"
+  },
+  {
+    "name": "DashboardCreateWidgetsBulk",
+    "description": "Bulk create widgets multiple dashboards at once.",
+    "category": "Dashboards",
+    "inputSchema": {
+      "type": [],
+      "properties": [
+        [
+          [
+            [
+              []
+            ],
+            [
+              []
+            ]
+          ]
+        ],
+        [
+          [
+            [
+              []
+            ],
+            [
+              [
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ]
+              ]
+            ],
+            [
+              []
+            ]
+          ]
+        ]
+      ],
+      "required": [
+        [],
+        []
+      ]
+    },
+    "isDangerous": true,
+    "sdkMethod": "IDashboardClient.CreateWidgetsBulkAsync"
+  },
+  {
+    "name": "DashboardUpdateWidgetsBulk",
+    "description": "Bulk update widgets multiple dashboards at once.",
+    "category": "Dashboards",
+    "inputSchema": {
+      "type": [],
+      "properties": [
+        [
+          [
+            [
+              []
+            ],
+            [
+              []
+            ]
+          ]
+        ],
+        [
+          [
+            [
+              []
+            ],
+            [
+              [
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ]
+              ]
+            ],
+            [
+              []
+            ]
+          ]
+        ]
+      ],
+      "required": [
+        [],
+        []
+      ]
+    },
+    "isDangerous": true,
+    "sdkMethod": "IDashboardClient.UpdateWidgetsBulkAsync"
+  },
+  {
+    "name": "DatasourceGetEntities",
+    "description": "List available data entities (tables) that can be queried.",
+    "category": "Datasources",
+    "inputSchema": {
+      "type": [],
+      "properties": [],
+      "required": []
+    },
+    "isDangerous": false,
+    "sdkMethod": "IDatasourceClient.GetEntitiesAsync"
+  },
+  {
+    "name": "DatasourceGetCategories",
+    "description": "Get categories for the datasource.",
+    "category": "Datasources",
+    "inputSchema": {
+      "type": [],
+      "properties": [],
+      "required": []
+    },
+    "isDangerous": false,
+    "sdkMethod": "IDatasourceClient.GetCategoriesAsync"
+  },
+  {
+    "name": "DatasourceGetEntitiesByCategory",
+    "description": "Get entities filtered by category.",
+    "category": "Datasources",
+    "inputSchema": {
+      "type": [],
+      "properties": [
+        [
+          [
+            [
+              []
+            ],
+            [
+              []
+            ]
+          ]
+        ]
+      ],
+      "required": [
+        []
+      ]
+    },
+    "isDangerous": false,
+    "sdkMethod": "IDatasourceClient.GetEntitiesByCategoryAsync"
+  },
+  {
+    "name": "DatasourceGetEntitySchema",
+    "description": "Get the schema (fields, types) of a data entity for building queries.",
+    "category": "Datasources",
+    "inputSchema": {
+      "type": [],
+      "properties": [
+        [
+          [
+            [
+              []
+            ],
+            [
+              []
+            ]
+          ]
+        ]
+      ],
+      "required": [
+        []
+      ]
+    },
+    "isDangerous": false,
+    "sdkMethod": "IDatasourceClient.GetEntitySchemaAsync"
+  },
+  {
+    "name": "DatasourceGetField",
+    "description": "Get field for the datasource.",
+    "category": "Datasources",
+    "inputSchema": {
+      "type": [],
+      "properties": [
+        [
+          [
+            [
+              []
+            ],
+            [
+              []
+            ]
+          ]
+        ],
+        [
+          [
+            [
+              []
+            ],
+            [
+              []
+            ]
+          ]
+        ]
+      ],
+      "required": [
+        [],
+        []
+      ]
+    },
+    "isDangerous": false,
+    "sdkMethod": "IDatasourceClient.GetFieldAsync"
+  },
+  {
+    "name": "DatasourceGetOperatorsForType",
+    "description": "Get operators for a specific type.",
+    "category": "Datasources",
+    "inputSchema": {
+      "type": [],
+      "properties": [
+        [
+          [
+            [
+              []
+            ],
+            [
+              []
+            ]
+          ]
+        ]
+      ],
+      "required": [
+        []
+      ]
+    },
+    "isDangerous": false,
+    "sdkMethod": "IDatasourceClient.GetOperatorsForTypeAsync"
+  },
+  {
+    "name": "DatasourceGetAggregationsForType",
+    "description": "Get aggregations for a specific type.",
+    "category": "Datasources",
+    "inputSchema": {
+      "type": [],
+      "properties": [
+        [
+          [
+            [
+              []
+            ],
+            [
+              []
+            ]
+          ]
+        ]
+      ],
+      "required": [
+        []
+      ]
+    },
+    "isDangerous": false,
+    "sdkMethod": "IDatasourceClient.GetAggregationsForTypeAsync"
+  },
+  {
+    "name": "DatasourceExecuteQuery",
+    "description": "Execute a custom data query against workspace entities. Powerful reporting tool.",
+    "category": "Datasources",
+    "inputSchema": {
+      "type": [],
+      "properties": [
+        [
+          [
+            [
+              []
+            ],
+            [
+              [
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ]
+              ]
+            ],
+            [
+              []
+            ]
+          ]
+        ],
+        [
+          [
+            [
+              []
+            ],
+            [
+              []
+            ]
+          ]
+        ]
+      ],
+      "required": [
+        [],
+        []
+      ]
+    },
+    "isDangerous": false,
+    "sdkMethod": "IDatasourceClient.ExecuteQueryAsync"
+  },
+  {
+    "name": "DevOpGetRepositories",
+    "description": "List connected Git repositories with last commit, branch info, and pipeline status.",
+    "category": "DevOps",
+    "inputSchema": {
+      "type": [],
+      "properties": [
+        [
+          [
+            [
+              []
+            ],
+            [
+              []
+            ]
+          ]
+        ]
+      ],
+      "required": [
+        []
+      ]
+    },
+    "isDangerous": false,
+    "sdkMethod": "IDevOpsClient.GetRepositoriesAsync"
+  },
+  {
+    "name": "DevOpGetRepository",
+    "description": "Get repository for the devops.",
+    "category": "DevOps",
+    "inputSchema": {
+      "type": [],
+      "properties": [
+        [
+          [
+            [
+              []
+            ],
+            [
+              []
+            ]
+          ]
+        ]
+      ],
+      "required": [
+        []
+      ]
+    },
+    "isDangerous": false,
+    "sdkMethod": "IDevOpsClient.GetRepositoryAsync"
+  },
+  {
+    "name": "DevOpCreateRepository",
+    "description": "Create a new devops.",
+    "category": "DevOps",
+    "inputSchema": {
+      "type": [],
+      "properties": [
+        [
+          [
+            [
+              []
+            ],
+            [
+              [
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ]
+              ]
+            ],
+            [
+              []
+            ]
+          ]
+        ]
+      ],
+      "required": [
+        []
+      ]
+    },
+    "isDangerous": false,
+    "sdkMethod": "IDevOpsClient.CreateRepositoryAsync"
+  },
+  {
+    "name": "DevOpUpdateRepository",
+    "description": "Update an existing devops.",
+    "category": "DevOps",
+    "inputSchema": {
+      "type": [],
+      "properties": [
+        [
+          [
+            [
+              []
+            ],
+            [
+              [
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ]
+              ]
+            ],
+            [
+              []
+            ]
+          ]
+        ]
+      ],
+      "required": [
+        []
+      ]
+    },
+    "isDangerous": false,
+    "sdkMethod": "IDevOpsClient.UpdateRepositoryAsync"
+  },
+  {
+    "name": "DevOpDeleteRepository",
+    "description": "Delete a devops. This action cannot be undone.",
+    "category": "DevOps",
+    "inputSchema": {
+      "type": [],
+      "properties": [
+        [
+          [
+            [
+              []
+            ],
+            [
+              []
+            ]
+          ]
+        ]
+      ],
+      "required": [
+        []
+      ]
+    },
+    "isDangerous": true,
+    "sdkMethod": "IDevOpsClient.DeleteRepositoryAsync"
+  },
+  {
+    "name": "DevOpGetPullRequests",
+    "description": "Get pull requests for a repository. Filter by state (open/closed/merged).",
+    "category": "DevOps",
+    "inputSchema": {
+      "type": [],
+      "properties": [
+        [
+          [
+            [
+              []
+            ],
+            [
+              []
+            ]
+          ]
+        ],
+        [
+          [
+            [
+              []
+            ],
+            [
+              []
+            ]
+          ]
+        ]
+      ],
+      "required": [
+        []
+      ]
+    },
+    "isDangerous": false,
+    "sdkMethod": "IDevOpsClient.GetPullRequestsAsync"
+  },
+  {
+    "name": "DevOpGetPullRequestsByRepository",
+    "description": "Get pull requests filtered by repository.",
+    "category": "DevOps",
+    "inputSchema": {
+      "type": [],
+      "properties": [
+        [
+          [
+            [
+              []
+            ],
+            [
+              []
+            ]
+          ]
+        ],
+        [
+          [
+            [
+              []
+            ],
+            [
+              []
+            ]
+          ]
+        ],
+        [
+          [
+            [
+              []
+            ],
+            [
+              []
+            ]
+          ]
+        ]
+      ],
+      "required": [
+        [],
+        []
+      ]
+    },
+    "isDangerous": false,
+    "sdkMethod": "IDevOpsClient.GetPullRequestsByRepositoryAsync"
+  },
+  {
+    "name": "DevOpGetPullRequestsByTask",
+    "description": "Get pull requests filtered by task.",
+    "category": "DevOps",
+    "inputSchema": {
+      "type": [],
+      "properties": [
+        [
+          [
+            [
+              []
+            ],
+            [
+              []
+            ]
+          ]
+        ]
+      ],
+      "required": [
+        []
+      ]
+    },
+    "isDangerous": false,
+    "sdkMethod": "IDevOpsClient.GetPullRequestsByTaskAsync"
+  },
+  {
+    "name": "DevOpGetPullRequestsBySession",
+    "description": "Get pull requests filtered by session.",
+    "category": "DevOps",
+    "inputSchema": {
+      "type": [],
+      "properties": [
+        [
+          [
+            [
+              []
+            ],
+            [
+              []
+            ]
+          ]
+        ]
+      ],
+      "required": [
+        []
+      ]
+    },
+    "isDangerous": false,
+    "sdkMethod": "IDevOpsClient.GetPullRequestsBySessionAsync"
+  },
+  {
+    "name": "DevOpGetPipelineRuns",
+    "description": "Get CI/CD pipeline runs with status, duration, and trigger info.",
+    "category": "DevOps",
+    "inputSchema": {
+      "type": [],
+      "properties": [
+        [
+          [
+            [
+              []
+            ],
+            [
+              []
+            ]
+          ]
+        ]
+      ],
+      "required": [
+        []
+      ]
+    },
+    "isDangerous": false,
+    "sdkMethod": "IDevOpsClient.GetPipelineRunsAsync"
+  },
+  {
+    "name": "DevOpGetLatestPipelineRun",
+    "description": "Get latest pipeline run for the devops.",
+    "category": "DevOps",
+    "inputSchema": {
+      "type": [],
+      "properties": [
+        [
+          [
+            [
+              []
+            ],
+            [
+              []
+            ]
+          ]
+        ]
+      ],
+      "required": [
+        []
+      ]
+    },
+    "isDangerous": false,
+    "sdkMethod": "IDevOpsClient.GetLatestPipelineRunAsync"
+  },
+  {
+    "name": "DevOpGetPipelineRunsByRepository",
+    "description": "Get pipeline runs filtered by repository.",
+    "category": "DevOps",
+    "inputSchema": {
+      "type": [],
+      "properties": [
+        [
+          [
+            [
+              []
+            ],
+            [
+              []
+            ]
+          ]
+        ],
+        [
+          [
+            [
+              []
+            ],
+            [
+              []
+            ]
+          ]
+        ]
+      ],
+      "required": [
+        [],
+        []
+      ]
+    },
+    "isDangerous": false,
+    "sdkMethod": "IDevOpsClient.GetPipelineRunsByRepositoryAsync"
+  },
+  {
+    "name": "DownloadGetManifest",
+    "description": "Get manifest for the downloads.",
+    "category": "Downloads",
+    "inputSchema": {
+      "type": [],
+      "properties": [],
+      "required": []
+    },
+    "isDangerous": false,
+    "sdkMethod": "IDownloadsClient.GetManifestAsync"
+  },
+  {
+    "name": "DownloadCreateApiKey",
+    "description": "Create a new downloads.",
+    "category": "Downloads",
+    "inputSchema": {
+      "type": [],
+      "properties": [
+        [
+          [
+            [
+              []
+            ],
+            [
+              [
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ]
+              ]
+            ],
+            [
+              []
+            ]
+          ]
+        ]
+      ],
+      "required": [
+        []
+      ]
+    },
+    "isDangerous": false,
+    "sdkMethod": "IDownloadsClient.CreateApiKeyAsync"
+  },
+  {
+    "name": "DownloadGetAudit",
+    "description": "Get audit for the downloads.",
+    "category": "Downloads",
+    "inputSchema": {
+      "type": [],
+      "properties": [
+        [
+          [
+            [
+              []
+            ],
+            [
+              []
+            ]
+          ]
+        ],
+        [
+          [
+            [
+              []
+            ],
+            [
+              []
+            ]
+          ]
+        ]
+      ],
+      "required": [
+        []
+      ]
+    },
+    "isDangerous": false,
+    "sdkMethod": "IDownloadsClient.GetAuditAsync"
+  },
+  {
+    "name": "EmployeeGetDetailed",
+    "description": "Get detailed information about a specific employee with expanded fields.",
+    "category": "Employees",
+    "inputSchema": {
+      "type": [],
+      "properties": [
+        [
+          [
+            [
+              []
+            ],
+            [
+              []
+            ]
+          ]
+        ]
+      ],
+      "required": [
+        []
+      ]
+    },
+    "isDangerous": false,
+    "sdkMethod": "IEmployeeClient.GetDetailedAsync"
+  },
+  {
+    "name": "GetEmployees",
+    "description": "List team members in the workspace with roles and access levels.",
+    "category": "Employees",
+    "inputSchema": {
+      "type": [],
+      "properties": [
+        [
+          [
+            [
+              []
+            ],
+            [
+              []
+            ]
+          ]
+        ],
+        [
+          [
+            [
+              []
+            ],
+            [
+              []
+            ]
+          ]
+        ]
+      ],
+      "required": [
+        []
+      ]
+    },
+    "isDangerous": false,
+    "sdkMethod": "IEmployeeClient.ListAsync"
+  },
+  {
+    "name": "FinanceGetInvoices",
+    "description": "Get invoices for the finance.",
+    "category": "Finances",
+    "inputSchema": {
+      "type": [],
+      "properties": [
+        [
+          [
+            [
+              []
+            ],
+            [
+              []
+            ]
+          ]
+        ]
+      ],
+      "required": [
+        []
+      ]
+    },
+    "isDangerous": false,
+    "sdkMethod": "IFinanceClient.GetInvoicesAsync"
+  },
+  {
+    "name": "GetProjects",
+    "description": "List all projects with name, status, progress percentage, and customer. Use query params to filter by status or search.",
+    "category": "Projects",
+    "inputSchema": {
+      "type": [],
+      "properties": [
+        [
+          [
+            [
+              []
+            ],
+            [
+              [
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ]
+              ]
+            ],
+            [
+              []
+            ]
+          ]
+        ]
+      ],
+      "required": []
+    },
+    "isDangerous": false,
+    "sdkMethod": "IProjectClient.GetAllAsync"
+  },
+  {
+    "name": "GetProjectDetails",
+    "description": "Get full project details including tasks, team members, budget, and timeline.",
+    "category": "Projects",
+    "inputSchema": {
+      "type": [],
+      "properties": [
+        [
+          [
+            [
+              []
+            ],
+            [
+              []
+            ]
+          ]
+        ]
+      ],
+      "required": [
+        []
+      ]
+    },
+    "isDangerous": false,
+    "sdkMethod": "IProjectClient.GetAsync"
+  },
+  {
+    "name": "CreateProject",
+    "description": "Create a new project. Requires name. Optional: customerId, categoryId, description, startDate.",
+    "category": "Projects",
+    "inputSchema": {
+      "type": [],
+      "properties": [
+        [
+          [
+            [
+              []
+            ],
+            [
+              [
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ]
+              ]
+            ],
+            [
+              []
+            ]
+          ]
+        ]
+      ],
+      "required": [
+        []
+      ]
+    },
+    "isDangerous": false,
+    "sdkMethod": "IProjectClient.CreateAsync"
+  },
+  {
+    "name": "UpdateProject",
+    "description": "Update an existing project.",
+    "category": "Projects",
+    "inputSchema": {
+      "type": [],
+      "properties": [
+        [
+          [
+            [
+              []
+            ],
+            [
+              []
+            ]
+          ]
+        ],
+        [
+          [
+            [
+              []
+            ],
+            [
+              [
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ]
+              ]
+            ],
+            [
+              []
+            ]
+          ]
+        ]
+      ],
+      "required": [
+        [],
+        []
+      ]
+    },
+    "isDangerous": false,
+    "sdkMethod": "IProjectClient.UpdateAsync"
+  },
+  {
+    "name": "DeleteProject",
+    "description": "Delete a project. This action cannot be undone.",
+    "category": "Projects",
+    "inputSchema": {
+      "type": [],
+      "properties": [
+        [
+          [
+            [
+              []
+            ],
+            [
+              []
+            ]
+          ]
+        ]
+      ],
+      "required": [
+        []
+      ]
+    },
+    "isDangerous": true,
+    "sdkMethod": "IProjectClient.DeleteAsync"
+  },
+  {
+    "name": "ProjectCreateBulk",
+    "description": "Bulk create multiple projects at once.",
+    "category": "Projects",
+    "inputSchema": {
+      "type": [],
+      "properties": [
+        [
+          [
+            [
+              []
+            ],
+            [
+              [
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ]
+              ]
+            ],
+            [
+              []
+            ]
+          ]
+        ]
+      ],
+      "required": [
+        []
+      ]
+    },
+    "isDangerous": true,
+    "sdkMethod": "IProjectClient.CreateBulkAsync"
+  },
+  {
+    "name": "ProjectUpdateBulk",
+    "description": "Bulk update multiple projects at once.",
+    "category": "Projects",
+    "inputSchema": {
+      "type": [],
+      "properties": [
+        [
+          [
+            [
+              []
+            ],
+            [
+              [
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ]
+              ]
+            ],
+            [
+              []
+            ]
+          ]
+        ]
+      ],
+      "required": [
+        []
+      ]
+    },
+    "isDangerous": true,
+    "sdkMethod": "IProjectClient.UpdateBulkAsync"
+  },
+  {
+    "name": "ProjectDeleteBulk",
+    "description": "Bulk delete multiple projects at once.",
+    "category": "Projects",
+    "inputSchema": {
+      "type": [],
+      "properties": [
+        [
+          [
+            [
+              []
+            ],
+            [
+              [
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ]
+              ]
+            ],
+            [
+              []
+            ]
+          ]
+        ]
+      ],
+      "required": [
+        []
+      ]
+    },
+    "isDangerous": true,
+    "sdkMethod": "IProjectClient.DeleteBulkAsync"
+  },
+  {
+    "name": "ProjectGetKeys",
+    "description": "Get available field definitions for projects.",
+    "category": "Projects",
+    "inputSchema": {
+      "type": [],
+      "properties": [
+        [
+          [
+            [
+              []
+            ],
+            [
+              [
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ]
+              ]
+            ],
+            [
+              []
+            ]
+          ]
+        ]
+      ],
+      "required": [
+        []
+      ]
+    },
+    "isDangerous": false,
+    "sdkMethod": "IProjectClient.GetKeysAsync"
+  },
+  {
+    "name": "ProjectGetRange",
+    "description": "Get projects by a range of IDs.",
+    "category": "Projects",
+    "inputSchema": {
+      "type": [],
+      "properties": [
+        [
+          [
+            [
+              []
+            ],
+            [
+              [
+                [
+                  []
+                ]
+              ]
+            ],
+            [
+              []
+            ]
+          ]
+        ]
+      ],
+      "required": [
+        []
+      ]
+    },
+    "isDangerous": false,
+    "sdkMethod": "IProjectClient.GetRangeAsync"
+  },
+  {
+    "name": "ProjectGetSubProjects",
+    "description": "Get sub-projects nested under a parent project.",
+    "category": "Projects",
+    "inputSchema": {
+      "type": [],
+      "properties": [
+        [
+          [
+            [
+              []
+            ],
+            [
+              []
+            ]
+          ]
+        ]
+      ],
+      "required": [
+        []
+      ]
+    },
+    "isDangerous": false,
+    "sdkMethod": "IProjectClient.GetSubProjectsAsync"
+  },
+  {
+    "name": "SearchProjects",
+    "description": "Search for projects by keyword.",
+    "category": "Projects",
+    "inputSchema": {
+      "type": [],
+      "properties": [
+        [
+          [
+            [
+              []
+            ],
+            [
+              []
+            ]
+          ]
+        ],
+        [
+          [
+            [
+              []
+            ],
+            [
+              []
+            ]
+          ]
+        ]
+      ],
+      "required": [
+        [],
+        []
+      ]
+    },
+    "isDangerous": false,
+    "sdkMethod": "IProjectClient.SearchAsync"
+  },
+  {
+    "name": "SaleGetPipelines",
+    "description": "List sales pipelines with stages and deal counts.",
+    "category": "Sales",
+    "inputSchema": {
+      "type": [],
+      "properties": [
+        [
+          [
+            [
+              []
+            ],
+            [
+              []
+            ]
+          ]
+        ]
+      ],
+      "required": [
+        []
+      ]
+    },
+    "isDangerous": false,
+    "sdkMethod": "ISalesClient.GetPipelinesAsync"
+  },
+  {
+    "name": "SaleGetPipeline",
+    "description": "Get pipeline for the sales.",
+    "category": "Sales",
+    "inputSchema": {
+      "type": [],
+      "properties": [
+        [
+          [
+            [
+              []
+            ],
+            [
+              []
+            ]
+          ]
+        ]
+      ],
+      "required": [
+        []
+      ]
+    },
+    "isDangerous": false,
+    "sdkMethod": "ISalesClient.GetPipelineAsync"
+  },
+  {
+    "name": "SaleCreatePipeline",
+    "description": "Create a new sales.",
+    "category": "Sales",
+    "inputSchema": {
+      "type": [],
+      "properties": [
+        [
+          [
+            [
+              []
+            ],
+            [
+              [
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ]
+              ]
+            ],
+            [
+              []
+            ]
+          ]
+        ]
+      ],
+      "required": [
+        []
+      ]
+    },
+    "isDangerous": false,
+    "sdkMethod": "ISalesClient.CreatePipelineAsync"
+  },
+  {
+    "name": "SaleUpdatePipeline",
+    "description": "Update an existing sales.",
+    "category": "Sales",
+    "inputSchema": {
+      "type": [],
+      "properties": [
+        [
+          [
+            [
+              []
+            ],
+            [
+              []
+            ]
+          ]
+        ],
+        [
+          [
+            [
+              []
+            ],
+            [
+              [
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ]
+              ]
+            ],
+            [
+              []
+            ]
+          ]
+        ]
+      ],
+      "required": [
+        [],
+        []
+      ]
+    },
+    "isDangerous": false,
+    "sdkMethod": "ISalesClient.UpdatePipelineAsync"
+  },
+  {
+    "name": "SaleDeletePipeline",
+    "description": "Delete a sales. This action cannot be undone.",
+    "category": "Sales",
+    "inputSchema": {
+      "type": [],
+      "properties": [
+        [
+          [
+            [
+              []
+            ],
+            [
+              []
+            ]
+          ]
+        ]
+      ],
+      "required": [
+        []
+      ]
+    },
+    "isDangerous": true,
+    "sdkMethod": "ISalesClient.DeletePipelineAsync"
+  },
+  {
+    "name": "SaleSearchDeals",
+    "description": "Search for saless by keyword.",
+    "category": "Sales",
+    "inputSchema": {
+      "type": [],
+      "properties": [
+        [
+          [
+            [
+              []
+            ],
+            [
+              [
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ]
+              ]
+            ],
+            [
+              []
+            ]
+          ]
+        ]
+      ],
+      "required": [
+        []
+      ]
+    },
+    "isDangerous": false,
+    "sdkMethod": "ISalesClient.SearchDealsAsync"
+  },
+  {
+    "name": "SaleGetDeal",
+    "description": "Get details of a specific sales deal including stage, value, and contacts.",
+    "category": "Sales",
+    "inputSchema": {
+      "type": [],
+      "properties": [
+        [
+          [
+            [
+              []
+            ],
+            [
+              []
+            ]
+          ]
+        ]
+      ],
+      "required": [
+        []
+      ]
+    },
+    "isDangerous": false,
+    "sdkMethod": "ISalesClient.GetDealAsync"
+  },
+  {
+    "name": "SaleCreateDeal",
+    "description": "Create a new sales.",
+    "category": "Sales",
+    "inputSchema": {
+      "type": [],
+      "properties": [
+        [
+          [
+            [
+              []
+            ],
+            [
+              [
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ]
+              ]
+            ],
+            [
+              []
+            ]
+          ]
+        ]
+      ],
+      "required": [
+        []
+      ]
+    },
+    "isDangerous": false,
+    "sdkMethod": "ISalesClient.CreateDealAsync"
+  },
+  {
+    "name": "SaleUpdateDeal",
+    "description": "Update an existing sales.",
+    "category": "Sales",
+    "inputSchema": {
+      "type": [],
+      "properties": [
+        [
+          [
+            [
+              []
+            ],
+            [
+              []
+            ]
+          ]
+        ],
+        [
+          [
+            [
+              []
+            ],
+            [
+              [
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ]
+              ]
+            ],
+            [
+              []
+            ]
+          ]
+        ]
+      ],
+      "required": [
+        [],
+        []
+      ]
+    },
+    "isDangerous": false,
+    "sdkMethod": "ISalesClient.UpdateDealAsync"
+  },
+  {
+    "name": "SaleDeleteDeal",
+    "description": "Delete a sales. This action cannot be undone.",
+    "category": "Sales",
+    "inputSchema": {
+      "type": [],
+      "properties": [
+        [
+          [
+            [
+              []
+            ],
+            [
+              []
+            ]
+          ]
+        ]
+      ],
+      "required": [
+        []
+      ]
+    },
+    "isDangerous": true,
+    "sdkMethod": "ISalesClient.DeleteDealAsync"
+  },
+  {
+    "name": "SaleGetPipelineAnalytics",
+    "description": "Get pipeline analytics for the sales.",
+    "category": "Sales",
+    "inputSchema": {
+      "type": [],
+      "properties": [
+        [
+          [
+            [
+              []
+            ],
+            [
+              []
+            ]
+          ]
+        ],
+        [
+          [
+            [
+              []
+            ],
+            [
+              []
+            ],
+            [
+              []
+            ]
+          ]
+        ],
+        [
+          [
+            [
+              []
+            ],
+            [
+              []
+            ],
+            [
+              []
+            ]
+          ]
+        ]
+      ],
+      "required": [
+        []
+      ]
+    },
+    "isDangerous": false,
+    "sdkMethod": "ISalesClient.GetPipelineAnalyticsAsync"
+  },
+  {
+    "name": "SaleGetForecast",
+    "description": "Get sales forecast with predicted revenue by period.",
+    "category": "Sales",
+    "inputSchema": {
+      "type": [],
+      "properties": [
+        [
+          [
+            [
+              []
+            ],
+            [
+              []
+            ]
+          ]
+        ],
+        [
+          [
+            [
+              []
+            ],
+            [
+              []
+            ]
+          ]
+        ]
+      ],
+      "required": [
+        []
+      ]
+    },
+    "isDangerous": false,
+    "sdkMethod": "ISalesClient.GetForecastAsync"
+  },
+  {
+    "name": "GetTasks",
+    "description": "List tasks for a project. Filter by status, assignee, priority. Returns title, progress, dates.",
+    "category": "Tasks",
+    "inputSchema": {
+      "type": [],
+      "properties": [
+        [
+          [
+            [
+              []
+            ],
+            [
+              [
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ]
+              ]
+            ],
+            [
+              []
+            ]
+          ]
+        ]
+      ],
+      "required": []
+    },
+    "isDangerous": false,
+    "sdkMethod": "ITaskClient.GetAllAsync"
+  },
+  {
+    "name": "GetTaskDetails",
+    "description": "Get detailed information about a specific task.",
+    "category": "Tasks",
+    "inputSchema": {
+      "type": [],
+      "properties": [
+        [
+          [
+            [
+              []
+            ],
+            [
+              []
+            ]
+          ]
+        ]
+      ],
+      "required": [
+        []
+      ]
+    },
+    "isDangerous": false,
+    "sdkMethod": "ITaskClient.GetAsync"
+  },
+  {
+    "name": "CreateTask",
+    "description": "Create a task in a project. Requires projectId and title. Optional: priority (1-5), assigneeId, description.",
+    "category": "Tasks",
+    "inputSchema": {
+      "type": [],
+      "properties": [
+        [
+          [
+            [
+              []
+            ],
+            [
+              [
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ]
+              ]
+            ],
+            [
+              []
+            ]
+          ]
+        ]
+      ],
+      "required": [
+        []
+      ]
+    },
+    "isDangerous": false,
+    "sdkMethod": "ITaskClient.CreateAsync"
+  },
+  {
+    "name": "UpdateTask",
+    "description": "Update task fields: title, description, priority, percentComplete, status, assigneeId.",
+    "category": "Tasks",
+    "inputSchema": {
+      "type": [],
+      "properties": [
+        [
+          [
+            [
+              []
+            ],
+            [
+              []
+            ]
+          ]
+        ],
+        [
+          [
+            [
+              []
+            ],
+            [
+              [
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ]
+              ]
+            ],
+            [
+              []
+            ]
+          ]
+        ]
+      ],
+      "required": [
+        [],
+        []
+      ]
+    },
+    "isDangerous": false,
+    "sdkMethod": "ITaskClient.UpdateAsync"
+  },
+  {
+    "name": "DeleteTask",
+    "description": "Delete a task. This action cannot be undone.",
+    "category": "Tasks",
+    "inputSchema": {
+      "type": [],
+      "properties": [
+        [
+          [
+            [
+              []
+            ],
+            [
+              []
+            ]
+          ]
+        ]
+      ],
+      "required": [
+        []
+      ]
+    },
+    "isDangerous": true,
+    "sdkMethod": "ITaskClient.DeleteAsync"
+  },
+  {
+    "name": "TaskUpdateStatus",
+    "description": "Quick status update for a task (e.g., Todo, InProgress, Done, Blocked).",
+    "category": "Tasks",
+    "inputSchema": {
+      "type": [],
+      "properties": [
+        [
+          [
+            [
+              []
+            ],
+            [
+              []
+            ]
+          ]
+        ],
+        [
+          [
+            [
+              []
+            ],
+            [
+              [
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ]
+              ]
+            ],
+            [
+              []
+            ]
+          ]
+        ]
+      ],
+      "required": [
+        [],
+        []
+      ]
+    },
+    "isDangerous": false,
+    "sdkMethod": "ITaskClient.UpdateStatusAsync"
+  },
+  {
+    "name": "TaskCreateBulk",
+    "description": "Bulk create multiple tasks at once.",
+    "category": "Tasks",
+    "inputSchema": {
+      "type": [],
+      "properties": [
+        [
+          [
+            [
+              []
+            ],
+            [
+              [
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ]
+              ]
+            ],
+            [
+              []
+            ]
+          ]
+        ]
+      ],
+      "required": [
+        []
+      ]
+    },
+    "isDangerous": true,
+    "sdkMethod": "ITaskClient.CreateBulkAsync"
+  },
+  {
+    "name": "TaskUpdateBulk",
+    "description": "Bulk update multiple tasks at once.",
+    "category": "Tasks",
+    "inputSchema": {
+      "type": [],
+      "properties": [
+        [
+          [
+            [
+              []
+            ],
+            [
+              [
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ]
+              ]
+            ],
+            [
+              []
+            ]
+          ]
+        ]
+      ],
+      "required": [
+        []
+      ]
+    },
+    "isDangerous": true,
+    "sdkMethod": "ITaskClient.UpdateBulkAsync"
+  },
+  {
+    "name": "TaskDeleteBulk",
+    "description": "Bulk delete multiple tasks at once.",
+    "category": "Tasks",
+    "inputSchema": {
+      "type": [],
+      "properties": [
+        [
+          [
+            [
+              []
+            ],
+            [
+              [
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ]
+              ]
+            ],
+            [
+              []
+            ]
+          ]
+        ]
+      ],
+      "required": [
+        []
+      ]
+    },
+    "isDangerous": true,
+    "sdkMethod": "ITaskClient.DeleteBulkAsync"
+  },
+  {
+    "name": "TaskUpdateStatusBulk",
+    "description": "Bulk update the status of multiple tasks at once.",
+    "category": "Tasks",
+    "inputSchema": {
+      "type": [],
+      "properties": [
+        [
+          [
+            [
+              []
+            ],
+            [
+              [
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ]
+              ]
+            ],
+            [
+              []
+            ]
+          ]
+        ]
+      ],
+      "required": [
+        []
+      ]
+    },
+    "isDangerous": true,
+    "sdkMethod": "ITaskClient.UpdateStatusBulkAsync"
+  },
+  {
+    "name": "TaskGetKeys",
+    "description": "Get available field definitions for tasks.",
+    "category": "Tasks",
+    "inputSchema": {
+      "type": [],
+      "properties": [
+        [
+          [
+            [
+              []
+            ],
+            [
+              [
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ]
+              ]
+            ],
+            [
+              []
+            ]
+          ]
+        ]
+      ],
+      "required": [
+        []
+      ]
+    },
+    "isDangerous": false,
+    "sdkMethod": "ITaskClient.GetKeysAsync"
+  },
+  {
+    "name": "TaskGetRange",
+    "description": "Get tasks by a range of IDs.",
+    "category": "Tasks",
+    "inputSchema": {
+      "type": [],
+      "properties": [
+        [
+          [
+            [
+              []
+            ],
+            [
+              [
+                [
+                  []
+                ]
+              ]
+            ],
+            [
+              []
+            ]
+          ]
+        ]
+      ],
+      "required": [
+        []
+      ]
+    },
+    "isDangerous": false,
+    "sdkMethod": "ITaskClient.GetRangeAsync"
+  },
+  {
+    "name": "TaskGetByProject",
+    "description": "Get all tasks for a specific project with hierarchy.",
+    "category": "Tasks",
+    "inputSchema": {
+      "type": [],
+      "properties": [
+        [
+          [
+            [
+              []
+            ],
+            [
+              []
+            ]
+          ]
+        ],
+        [
+          [
+            [
+              []
+            ],
+            [
+              []
+            ]
+          ]
+        ]
+      ],
+      "required": [
+        [],
+        []
+      ]
+    },
+    "isDangerous": false,
+    "sdkMethod": "ITaskClient.GetByProjectAsync"
+  },
+  {
+    "name": "TaskGetByAssignee",
+    "description": "Get all tasks assigned to a specific user across projects.",
+    "category": "Tasks",
+    "inputSchema": {
+      "type": [],
+      "properties": [
+        [
+          [
+            [
+              []
+            ],
+            [
+              []
+            ]
+          ]
+        ],
+        [
+          [
+            [
+              []
+            ],
+            [
+              []
+            ]
+          ]
+        ]
+      ],
+      "required": [
+        [],
+        []
+      ]
+    },
+    "isDangerous": false,
+    "sdkMethod": "ITaskClient.GetByAssigneeAsync"
+  },
+  {
+    "name": "TaskGetSubTasks",
+    "description": "Get tasks nested under a task.",
+    "category": "Tasks",
+    "inputSchema": {
+      "type": [],
+      "properties": [
+        [
+          [
+            [
+              []
+            ],
+            [
+              []
+            ]
+          ]
+        ]
+      ],
+      "required": [
+        []
+      ]
+    },
+    "isDangerous": false,
+    "sdkMethod": "ITaskClient.GetSubTasksAsync"
+  },
+  {
+    "name": "SearchTasks",
+    "description": "Search for tasks by keyword.",
+    "category": "Tasks",
+    "inputSchema": {
+      "type": [],
+      "properties": [
+        [
+          [
+            [
+              []
+            ],
+            [
+              []
+            ]
+          ]
+        ],
+        [
+          [
+            [
+              []
+            ],
+            [
+              []
+            ]
+          ]
+        ]
+      ],
+      "required": [
+        [],
+        []
+      ]
+    },
+    "isDangerous": false,
+    "sdkMethod": "ITaskClient.SearchAsync"
+  },
+  {
+    "name": "GetTenants",
+    "description": "List all tenants in the workspace.",
+    "category": "Tenants",
+    "inputSchema": {
+      "type": [],
+      "properties": [],
+      "required": []
+    },
+    "isDangerous": false,
+    "sdkMethod": "ITenantClient.GetAllAsync"
+  },
+  {
+    "name": "TenantGetBySlug",
+    "description": "Get tenants filtered by slug.",
+    "category": "Tenants",
+    "inputSchema": {
+      "type": [],
+      "properties": [
+        [
+          [
+            [
+              []
+            ],
+            [
+              []
+            ]
+          ]
+        ]
+      ],
+      "required": [
+        []
+      ]
+    },
+    "isDangerous": false,
+    "sdkMethod": "ITenantClient.GetBySlugAsync"
+  },
+  {
+    "name": "CreateTenant",
+    "description": "Create a new tenant.",
+    "category": "Tenants",
+    "inputSchema": {
+      "type": [],
+      "properties": [
+        [
+          [
+            [
+              []
+            ],
+            [
+              [
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ]
+              ]
+            ],
+            [
+              []
+            ]
+          ]
+        ]
+      ],
+      "required": [
+        []
+      ]
+    },
+    "isDangerous": false,
+    "sdkMethod": "ITenantClient.CreateAsync"
+  },
+  {
+    "name": "UpdateTenant",
+    "description": "Update an existing tenant.",
+    "category": "Tenants",
+    "inputSchema": {
+      "type": [],
+      "properties": [
+        [
+          [
+            [
+              []
+            ],
+            [
+              [
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ]
+              ]
+            ],
+            [
+              []
+            ]
+          ]
+        ]
+      ],
+      "required": [
+        []
+      ]
+    },
+    "isDangerous": false,
+    "sdkMethod": "ITenantClient.UpdateAsync"
+  },
+  {
+    "name": "GetTimeRegistrations",
+    "description": "List time entries. Filter by date range, userId, projectId, taskId.",
+    "category": "TimeRegistrations",
+    "inputSchema": {
+      "type": [],
+      "properties": [
+        [
+          [
+            [
+              []
+            ],
+            [
+              [
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ]
+              ]
+            ],
+            [
+              []
+            ]
+          ]
+        ]
+      ],
+      "required": []
+    },
+    "isDangerous": false,
+    "sdkMethod": "ITimeRegistrationClient.GetAllAsync"
+  },
+  {
+    "name": "GetTimeRegistrationDetails",
+    "description": "Get detailed information about a specific timeregistration.",
+    "category": "TimeRegistrations",
+    "inputSchema": {
+      "type": [],
+      "properties": [
+        [
+          [
+            [
+              []
+            ],
+            [
+              []
+            ]
+          ]
+        ]
+      ],
+      "required": [
+        []
+      ]
+    },
+    "isDangerous": false,
+    "sdkMethod": "ITimeRegistrationClient.GetAsync"
+  },
+  {
+    "name": "CreateTimeRegistration",
+    "description": "Log work hours. Requires taskId, hours, date. Optional: description, userId.",
+    "category": "TimeRegistrations",
+    "inputSchema": {
+      "type": [],
+      "properties": [
+        [
+          [
+            [
+              []
+            ],
+            [
+              [
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ]
+              ]
+            ],
+            [
+              []
+            ]
+          ]
+        ]
+      ],
+      "required": [
+        []
+      ]
+    },
+    "isDangerous": false,
+    "sdkMethod": "ITimeRegistrationClient.CreateAsync"
+  },
+  {
+    "name": "UpdateTimeRegistration",
+    "description": "Update an existing timeregistration.",
+    "category": "TimeRegistrations",
+    "inputSchema": {
+      "type": [],
+      "properties": [
+        [
+          [
+            [
+              []
+            ],
+            [
+              []
+            ]
+          ]
+        ],
+        [
+          [
+            [
+              []
+            ],
+            [
+              [
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ],
+                [
+                  [
+                    [
+                      []
+                    ],
+                    [
+                      []
+                    ]
+                  ]
+                ]
+              ]
+            ],
+            [
+              []
+            ]
+          ]
+        ]
+      ],
+      "required": [
+        [],
+        []
+      ]
+    },
+    "isDangerous": false,
+    "sdkMethod": "ITimeRegistrationClient.UpdateAsync"
+  },
+  {
+    "name": "DeleteTimeRegistration",
+    "description": "Delete a timeregistration. This action cannot be undone.",
+    "category": "TimeRegistrations",
+    "inputSchema": {
+      "type": [],
+      "properties": [
+        [
+          [
+            [
+              []
+            ],
+            [
+              []
+            ]
+          ]
+        ]
+      ],
+      "required": [
+        []
+      ]
+    },
+    "isDangerous": true,
+    "sdkMethod": "ITimeRegistrationClient.DeleteAsync"
+  },
+  {
+    "name": "TimeRegistrationGetByDateRange",
+    "description": "Get timeregistrations filtered by date range.",
+    "category": "TimeRegistrations",
+    "inputSchema": {
+      "type": [],
+      "properties": [
+        [
+          [
+            [
+              []
+            ],
+            [
+              []
+            ],
+            [
+              []
+            ]
+          ]
+        ],
+        [
+          [
+            [
+              []
+            ],
+            [
+              []
+            ],
+            [
+              []
+            ]
+          ]
+        ],
+        [
+          [
+            [
+              []
+            ],
+            [
+              []
+            ]
+          ]
+        ]
+      ],
+      "required": [
+        [],
+        [],
+        []
+      ]
+    },
+    "isDangerous": false,
+    "sdkMethod": "ITimeRegistrationClient.GetByDateRangeAsync"
+  },
+  {
+    "name": "TimeRegistrationGetByProject",
+    "description": "Get timeregistrations filtered by project.",
+    "category": "TimeRegistrations",
+    "inputSchema": {
+      "type": [],
+      "properties": [
+        [
+          [
+            [
+              []
+            ],
+            [
+              []
+            ]
+          ]
+        ],
+        [
+          [
+            [
+              []
+            ],
+            [
+              []
+            ]
+          ]
+        ]
+      ],
+      "required": [
+        [],
+        []
+      ]
+    },
+    "isDangerous": false,
+    "sdkMethod": "ITimeRegistrationClient.GetByProjectAsync"
+  },
+  {
+    "name": "TimeRegistrationGetByTask",
+    "description": "Get timeregistrations filtered by task.",
+    "category": "TimeRegistrations",
+    "inputSchema": {
+      "type": [],
+      "properties": [
+        [
+          [
+            [
+              []
+            ],
+            [
+              []
+            ]
+          ]
+        ],
+        [
+          [
+            [
+              []
+            ],
+            [
+              []
+            ]
+          ]
+        ]
+      ],
+      "required": [
+        [],
+        []
+      ]
+    },
+    "isDangerous": false,
+    "sdkMethod": "ITimeRegistrationClient.GetByTaskAsync"
+  }
+]
