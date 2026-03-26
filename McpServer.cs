@@ -497,13 +497,13 @@ public class McpServer(ServedClient servedClient, string baseUrl, string token, 
 
                 stopwatch.Stop();
 
-                var resultJson = JsonConvert.SerializeObject(result, Formatting.Indented);
+                var resultText = FormatResult(result);
 
-                span?.SetAttribute("mcp.result.size", resultJson.Length);
+                span?.SetAttribute("mcp.result.size", resultText.Length);
                 span?.SetAttribute("mcp.success", true);
 
                 // Track successful tool call
-                _ = TrackToolCallAsync(toolName, arguments, true, stopwatch.ElapsedMilliseconds, null, resultJson.Length);
+                _ = TrackToolCallAsync(toolName, arguments, true, stopwatch.ElapsedMilliseconds, null, resultText.Length);
 
                 var response = new
                 {
@@ -513,7 +513,7 @@ public class McpServer(ServedClient servedClient, string baseUrl, string token, 
                     {
                         content = new[]
                         {
-                            new { type = "text", text = resultJson }
+                            new { type = "text", text = resultText }
                         }
                     }
                 };
@@ -537,6 +537,93 @@ public class McpServer(ServedClient servedClient, string baseUrl, string token, 
         {
             SendError(id, -32601, $"Tool '{toolName}' not found. Use tools/list to see available tools.");
         }
+    }
+
+    /// <summary>
+    /// Format tool result as compact markdown instead of verbose JSON.
+    /// Strings pass through as-is. Objects/arrays get markdown table/list format.
+    /// </summary>
+    private static string FormatResult(object result)
+    {
+        if (result is string s) return s;
+
+        var json = JsonConvert.SerializeObject(result);
+        var token = JToken.Parse(json);
+
+        return token.Type switch
+        {
+            JTokenType.Array => FormatArray((JArray)token),
+            JTokenType.Object => FormatObject((JObject)token),
+            _ => token.ToString()
+        };
+    }
+
+    private static string FormatArray(JArray arr)
+    {
+        if (arr.Count == 0) return "*(empty)*";
+
+        // If array of objects, use markdown table
+        if (arr[0] is JObject firstObj)
+        {
+            var keys = firstObj.Properties().Select(p => p.Name).Take(8).ToList();
+            var sb = new StringBuilder();
+            sb.AppendLine($"**{arr.Count} items**\n");
+            sb.AppendLine("| " + string.Join(" | ", keys) + " |");
+            sb.AppendLine("| " + string.Join(" | ", keys.Select(_ => "---")) + " |");
+            foreach (var item in arr.Take(50))
+            {
+                if (item is JObject obj)
+                {
+                    var vals = keys.Select(k =>
+                    {
+                        var v = obj[k];
+                        if (v == null || v.Type == JTokenType.Null) return "-";
+                        var str = v.ToString().Replace("|", "\\|");
+                        return str.Length > 60 ? str[..57] + "..." : str;
+                    });
+                    sb.AppendLine("| " + string.Join(" | ", vals) + " |");
+                }
+            }
+            if (arr.Count > 50) sb.AppendLine($"\n*...and {arr.Count - 50} more*");
+            return sb.ToString();
+        }
+
+        // Simple array
+        return string.Join(", ", arr.Select(x => x.ToString()));
+    }
+
+    private static string FormatObject(JObject obj)
+    {
+        var sb = new StringBuilder();
+        foreach (var prop in obj.Properties())
+        {
+            var val = prop.Value;
+            if (val == null || val.Type == JTokenType.Null) continue;
+
+            if (val is JArray childArr && childArr.Count > 0 && childArr[0] is JObject)
+            {
+                sb.AppendLine($"\n### {prop.Name}");
+                sb.AppendLine(FormatArray(childArr));
+            }
+            else if (val is JArray simpleArr)
+            {
+                sb.AppendLine($"- **{prop.Name}**: {string.Join(", ", simpleArr.Select(x => x.ToString()))}");
+            }
+            else if (val is JObject childObj)
+            {
+                sb.AppendLine($"\n**{prop.Name}**:");
+                foreach (var cp in childObj.Properties())
+                {
+                    if (cp.Value.Type != JTokenType.Null)
+                        sb.AppendLine($"  - {cp.Name}: {cp.Value}");
+                }
+            }
+            else
+            {
+                sb.AppendLine($"- **{prop.Name}**: {val}");
+            }
+        }
+        return sb.ToString();
     }
 
     /// <summary>
