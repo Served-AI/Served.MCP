@@ -123,6 +123,7 @@ public class McpServer(ServedClient servedClient, string baseUrl, string token, 
             Console.Error.WriteLine("[MCP] Token expired, auto-refreshing...");
 
             using var authClient = new HttpClient { BaseAddress = new Uri(_baseUrl) };
+            authClient.DefaultRequestHeaders.Add("User-Agent", "Served-MCP/2026.2 (Atlas)");
 
             // Step 1: Register browser session
             var visitorId = Guid.NewGuid().ToString();

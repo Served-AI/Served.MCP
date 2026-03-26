@@ -17,7 +17,43 @@ using Served.SDK.Utilities;
 var baseUrl = Environment.GetEnvironmentVariable("SERVED_API_URL") ?? "https://app.served.dk";
 var token = Environment.GetEnvironmentVariable("SERVED_API_TOKEN") ?? "";
 var tenant = Environment.GetEnvironmentVariable("SERVED_TENANT") ?? "";
+var email = Environment.GetEnvironmentVariable("SERVED_EMAIL") ?? "";
+var password = Environment.GetEnvironmentVariable("SERVED_PASSWORD") ?? "";
 var enableTracing = Environment.GetEnvironmentVariable("SERVED_TRACING_ENABLED")?.Equals("true", StringComparison.OrdinalIgnoreCase) ?? true;
+
+// Auto-login if no token but credentials provided
+if (string.IsNullOrEmpty(token) && !string.IsNullOrEmpty(email) && !string.IsNullOrEmpty(password))
+{
+    Console.Error.WriteLine($"[MCP] No token provided. Auto-login with {email}...");
+    try
+    {
+        using var authHttp = new HttpClient { BaseAddress = new Uri(baseUrl) };
+        authHttp.DefaultRequestHeaders.Add("User-Agent", "Served-MCP/2026.2 (Atlas)");
+        var visitorId = Guid.NewGuid().ToString();
+        var regResp = await authHttp.GetStringAsync($"/api/identity/account/Register?visitorId={visitorId}");
+        var browserToken = JObject.Parse(regResp)["token"]?.ToString();
+
+        if (!string.IsNullOrEmpty(browserToken))
+        {
+            authHttp.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", browserToken);
+            var loginPayload = new StringContent(
+                $"{{\"email\":\"{email}\",\"password\":\"{password}\"}}",
+                Encoding.UTF8, "application/json");
+            var loginResp = await authHttp.PostAsync("/api/identity/account/login", loginPayload);
+            var loginJson = JObject.Parse(await loginResp.Content.ReadAsStringAsync());
+            token = loginJson["token"]?.ToString() ?? "";
+
+            if (!string.IsNullOrEmpty(token))
+                Console.Error.WriteLine($"[MCP] Auto-login successful. Token expires in ~1h.");
+            else
+                Console.Error.WriteLine($"[MCP] Auto-login failed: no token in response.");
+        }
+    }
+    catch (Exception ex)
+    {
+        Console.Error.WriteLine($"[MCP] Auto-login failed: {ex.Message}");
+    }
+}
 
 // SDK Initialization with Tracing
 var clientBuilder = new ServedClientBuilder()
@@ -94,6 +130,14 @@ Console.Error.WriteLine($"[MCP] Registered notes/vault tools");
 // Billing - SaaS plan catalog, subscriptions, funnel analytics
 BillingTools.Register(server, client);
 Console.Error.WriteLine($"[MCP] Registered billing tools");
+
+// Suno - AI music generation (generate, lyrics, extend, credits)
+SunoTools.Register(server, client);
+Console.Error.WriteLine($"[MCP] Registered Suno music generation tools");
+
+// Infra - UnifiedInfra IaC (plan, apply, recommend, status, cost)
+InfraTools.Register(server, client);
+Console.Error.WriteLine($"[MCP] Registered UnifiedInfra IaC tools");
 
 // ----------------------------------------------------------------------
 // Start the server
