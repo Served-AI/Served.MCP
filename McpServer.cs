@@ -41,11 +41,20 @@ public class McpServer(ServedClient servedClient, string baseUrl, string token, 
     private readonly ServedClient _servedClient = servedClient;
     private readonly Dictionary<string, ToolDefinition> _tools = new();
     private readonly HttpClient _httpClient = CreateHttpClient(baseUrl, token, tenant);
+    private readonly string _baseUrl = baseUrl;
+    private readonly string _tenant = tenant;
 
     // Server metadata
     private const string ServerName = "served-mcp";
     private const string ServerVersion = "2026.2.0";
     private const string ProtocolVersion = "2024-11-05";
+
+    // Auth refresh
+    private string? _email = Environment.GetEnvironmentVariable("SERVED_EMAIL");
+    private string? _password = Environment.GetEnvironmentVariable("SERVED_PASSWORD");
+    private string? _apiKey = Environment.GetEnvironmentVariable("SERVED_API_KEY");
+    private readonly SemaphoreSlim _refreshLock = new(1, 1);
+    private DateTime _tokenExpiry = DateTime.UtcNow.AddHours(1);
 
     // Session tracking
     public string? SessionId { get; set; }
@@ -81,6 +90,95 @@ public class McpServer(ServedClient servedClient, string baseUrl, string token, 
     }
 
     public HttpClient Http => _httpClient;
+
+    /// <summary>
+    /// Refresh the JWT token by re-authenticating. Called automatically on 401/503.
+    /// Supports: SERVED_API_KEY (long-lived), or SERVED_EMAIL + SERVED_PASSWORD (auto-login).
+    /// </summary>
+    public async Task<bool> RefreshTokenAsync()
+    {
+        if (!await _refreshLock.WaitAsync(5000)) return false;
+        try
+        {
+            // Skip if token was recently refreshed by another call
+            if (DateTime.UtcNow < _tokenExpiry.AddMinutes(-5)) return true;
+
+            // Option 1: API key (never expires)
+            if (!string.IsNullOrEmpty(_apiKey))
+            {
+                _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", _apiKey);
+                _servedClient.SetToken(_apiKey);
+                _tokenExpiry = DateTime.UtcNow.AddYears(1);
+                Console.Error.WriteLine("[MCP] Using API key (long-lived)");
+                return true;
+            }
+
+            // Option 2: Auto-login with email/password
+            if (string.IsNullOrEmpty(_email) || string.IsNullOrEmpty(_password))
+            {
+                Console.Error.WriteLine("[MCP] Token expired. Set SERVED_EMAIL + SERVED_PASSWORD or SERVED_API_KEY for auto-refresh.");
+                return false;
+            }
+
+            Console.Error.WriteLine("[MCP] Token expired, auto-refreshing...");
+
+            using var authClient = new HttpClient { BaseAddress = new Uri(_baseUrl) };
+
+            // Step 1: Register browser session
+            var visitorId = Guid.NewGuid().ToString();
+            var regResponse = await authClient.GetAsync($"/api/identity/account/Register?visitorId={visitorId}");
+            if (!regResponse.IsSuccessStatusCode)
+            {
+                Console.Error.WriteLine($"[MCP] Browser registration failed: {regResponse.StatusCode}");
+                return false;
+            }
+
+            var regJson = JObject.Parse(await regResponse.Content.ReadAsStringAsync());
+            var browserToken = regJson["token"]?.ToString();
+            if (string.IsNullOrEmpty(browserToken))
+            {
+                Console.Error.WriteLine("[MCP] Browser registration returned no token");
+                return false;
+            }
+
+            // Step 2: Login
+            authClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", browserToken);
+            var loginPayload = new StringContent(
+                JsonConvert.SerializeObject(new { email = _email, password = _password }),
+                Encoding.UTF8, "application/json");
+            var loginResponse = await authClient.PostAsync("/api/identity/account/login", loginPayload);
+            if (!loginResponse.IsSuccessStatusCode)
+            {
+                Console.Error.WriteLine($"[MCP] Login failed: {loginResponse.StatusCode}");
+                return false;
+            }
+
+            var loginJson = JObject.Parse(await loginResponse.Content.ReadAsStringAsync());
+            var newToken = loginJson["token"]?.ToString();
+            if (string.IsNullOrEmpty(newToken))
+            {
+                Console.Error.WriteLine("[MCP] Login returned no token");
+                return false;
+            }
+
+            // Step 3: Update HttpClient and SDK client
+            _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", newToken);
+            _servedClient.SetToken(newToken);
+            _tokenExpiry = DateTime.UtcNow.AddMinutes(55); // JWT is typically 1h
+
+            Console.Error.WriteLine("[MCP] Token refreshed successfully");
+            return true;
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"[MCP] Token refresh failed: {ex.Message}");
+            return false;
+        }
+        finally
+        {
+            _refreshLock.Release();
+        }
+    }
 
     /// <summary>
     /// Register a tool with full metadata (description and schema).
@@ -378,7 +476,24 @@ public class McpServer(ServedClient servedClient, string baseUrl, string token, 
             var stopwatch = Stopwatch.StartNew();
             try
             {
-                var result = await toolDef.Handler(arguments);
+                object result;
+                try
+                {
+                    result = await toolDef.Handler(arguments);
+                }
+                catch (Exception firstEx) when (IsAuthError(firstEx))
+                {
+                    // Token expired — try auto-refresh and retry once
+                    if (await RefreshTokenAsync())
+                    {
+                        result = await toolDef.Handler(arguments);
+                    }
+                    else
+                    {
+                        throw; // Re-throw original if refresh failed
+                    }
+                }
+
                 stopwatch.Stop();
 
                 var resultJson = JsonConvert.SerializeObject(result, Formatting.Indented);
@@ -421,6 +536,17 @@ public class McpServer(ServedClient servedClient, string baseUrl, string token, 
         {
             SendError(id, -32601, $"Tool '{toolName}' not found. Use tools/list to see available tools.");
         }
+    }
+
+    /// <summary>
+    /// Check if an exception indicates an auth/token error (401, 403, ServiceUnavailable).
+    /// </summary>
+    private static bool IsAuthError(Exception ex)
+    {
+        var msg = ex.Message + (ex.InnerException?.Message ?? "");
+        return msg.Contains("Unauthorized") || msg.Contains("401")
+            || msg.Contains("ServiceUnavailable") || msg.Contains("503")
+            || msg.Contains("Forbidden") || msg.Contains("403");
     }
 
     /// <summary>
