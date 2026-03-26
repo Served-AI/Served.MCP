@@ -20,7 +20,7 @@ public static class ContextTools
             "FIRST TOOL TO CALL! Returns current user info, available tenants and workspaces. Essential for understanding what data you can access.",
             async (args) =>
             {
-                var response = await server.Http.GetAsync("/api/context/bootstrap");
+                var response = await server.Http.GetAsync("/api/core/bootstrap/user");
                 if (!response.IsSuccessStatusCode)
                     throw new Exception($"Failed to get user context: {response.StatusCode}");
 
@@ -28,7 +28,7 @@ public static class ContextTools
 
                 var sb = new StringBuilder();
                 sb.AppendLine("@userContext {");
-                sb.AppendLine($"  userId: {bootstrap["id"]}");
+                sb.AppendLine($"  userId: {bootstrap["userId"]}");
                 sb.AppendLine($"  email: \"{bootstrap["email"]}\"");
                 sb.AppendLine($"  name: \"{bootstrap["firstName"]} {bootstrap["lastName"]}\"");
                 sb.AppendLine();
@@ -58,34 +58,57 @@ public static class ContextTools
             "Get detailed tenant context including workspaces, features, and team members.",
             async (args) =>
             {
-                var tenantId = args["tenantId"]?.Value<int>() ?? throw new ArgumentException("tenantId required");
+                var tenantSlug = args["tenantSlug"]?.Value<string>() ?? throw new ArgumentException("tenantSlug required");
 
-                var response = await server.Http.GetAsync($"/api/context/tenant/{tenantId}");
+                var response = await server.Http.GetAsync($"/api/core/bootstrap/tenant/{tenantSlug}");
                 if (!response.IsSuccessStatusCode)
                     throw new Exception($"Failed to get tenant context: {response.StatusCode}");
 
-                var tenant = JObject.Parse(await response.Content.ReadAsStringAsync());
+                var data = JObject.Parse(await response.Content.ReadAsStringAsync());
+                var tenant = data["tenant"] ?? data;
 
                 var sb = new StringBuilder();
-                sb.AppendLine($"@tenantContext[{tenantId}] {{");
+                sb.AppendLine($"@tenantContext {{");
                 sb.AppendLine($"  name: \"{tenant["name"]}\"");
                 sb.AppendLine($"  slug: \"{tenant["slug"]}\"");
-                sb.AppendLine($"  features: [{string.Join(", ", (tenant["features"] as JArray ?? new JArray()).Select(f => f.ToString()))}]");
+                sb.AppendLine($"  id: {tenant["id"]}");
                 sb.AppendLine();
 
-                var workspaces = tenant["workspaces"] as JArray ?? new JArray();
-                sb.AppendLine($"  workspaces: [{workspaces.Count}] {{");
-                foreach (var ws in workspaces)
+                var features = data["features"] as JArray ?? new JArray();
+                sb.AppendLine($"  features: [{features.Count}] {{");
+                foreach (var f in features)
                 {
-                    sb.AppendLine($"    @workspace[{ws["id"]}] {{");
-                    sb.AppendLine($"      name: \"{ws["name"]}\"");
-                    sb.AppendLine($"      slug: \"{ws["slug"]}\"");
-                    sb.AppendLine($"      type: \"{ws["workspaceType"]}\"");
-                    sb.AppendLine($"    }}");
+                    sb.AppendLine($"    {f["key"]}: {f["isEnabled"]}");
                 }
                 sb.AppendLine("  }");
-                sb.AppendLine("}");
+                sb.AppendLine();
 
+                var settings = data["settings"] as JArray ?? new JArray();
+                sb.AppendLine($"  settings: [{settings.Count}]");
+
+                var boards = data["boards"] as JArray ?? new JArray();
+                if (boards.Count > 0)
+                {
+                    sb.AppendLine($"  boards: [{boards.Count}] {{");
+                    foreach (var b in boards)
+                    {
+                        sb.AppendLine($"    @board[{b["id"]}] {{ name: \"{b["name"]}\" }}");
+                    }
+                    sb.AppendLine("  }");
+                }
+
+                var categoryKeys = data["categoryKeys"];
+                if (categoryKeys != null)
+                {
+                    sb.AppendLine($"  categoryKeys: {{");
+                    foreach (var prop in (categoryKeys as JObject)?.Properties() ?? [])
+                    {
+                        sb.AppendLine($"    {prop.Name}: [{string.Join(", ", prop.Value)}]");
+                    }
+                    sb.AppendLine("  }");
+                }
+
+                sb.AppendLine("}");
                 return sb.ToString();
             },
             new JObject
@@ -93,9 +116,9 @@ public static class ContextTools
                 ["type"] = "object",
                 ["properties"] = new JObject
                 {
-                    ["tenantId"] = new JObject { ["type"] = "integer", ["description"] = "Tenant ID to get context for" }
+                    ["tenantSlug"] = new JObject { ["type"] = "string", ["description"] = "Tenant slug (e.g. 'served')" }
                 },
-                ["required"] = new JArray { "tenantId" }
+                ["required"] = new JArray { "tenantSlug" }
             });
 
         server.RegisterTool("GetProjectContext",
@@ -104,7 +127,7 @@ public static class ContextTools
             {
                 var projectId = args["projectId"]?.Value<int>() ?? throw new ArgumentException("projectId required");
 
-                var response = await server.Http.GetAsync($"/api/projects/{projectId}");
+                var response = await server.Http.GetAsync($"/api/project-management/projects/{projectId}");
                 if (!response.IsSuccessStatusCode)
                     throw new Exception($"Failed to get project: {response.StatusCode}");
 
@@ -113,9 +136,12 @@ public static class ContextTools
                 var sb = new StringBuilder();
                 sb.AppendLine($"@projectContext[{projectId}] {{");
                 sb.AppendLine($"  name: \"{project["name"]}\"");
-                sb.AppendLine($"  status: \"{project["status"]}\"");
-                sb.AppendLine($"  customer: \"{project["customerName"]}\"");
-                sb.AppendLine($"  progress: {project["percentComplete"]}%");
+                sb.AppendLine($"  description: \"{project["description"]}\"");
+                sb.AppendLine($"  status: \"{project["projectStatusId"]}\"");
+                sb.AppendLine($"  customerId: {project["customerId"]}");
+                sb.AppendLine($"  progress: {project["progress"]}%");
+                sb.AppendLine($"  startDate: \"{project["startDate"]}\"");
+                sb.AppendLine($"  endDate: \"{project["endDate"]}\"");
                 sb.AppendLine("}");
 
                 return sb.ToString();
