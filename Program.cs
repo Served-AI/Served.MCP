@@ -5,6 +5,7 @@ using System.Text;
 using Newtonsoft.Json.Linq;
 using Served.MCP;
 using Served.MCP.Tools;
+using Served.MCP.Tools.State;
 using Served.SDK.Client;
 using Served.SDK.Models.Projects;
 using Served.SDK.Models.Dashboards;
@@ -233,12 +234,24 @@ InfraTools.Register(server, client);
 Console.Error.WriteLine($"[MCP] Registered UnifiedInfra IaC tools");
 
 // ----------------------------------------------------------------------
-// ROOF: Tool Group Management (meta-tools, always visible)
+// ROOF: Tool Group Management + Plan Notebook + State Persistence
 // ----------------------------------------------------------------------
 ToolGroupTools.Register(server, toolGroupRegistry);
+
+// Agent State Manager — filesystem-backed state persistence
+var stateManager = new AgentStateManager(server, toolGroupRegistry);
+stateManager.StartAutoSave(TimeSpan.FromMinutes(5));
+Console.Error.WriteLine($"[MCP] Agent state manager initialized (auto-save: 5m)");
+
+// Plan Notebook Tools — structured plan management
+PlanTools.Register(server, toolGroupRegistry, stateManager);
+
 
 // ----------------------------------------------------------------------
 // Start the server
 // ----------------------------------------------------------------------
 Console.Error.WriteLine($"[MCP] All tools registered. Starting JSON-RPC server...");
 await server.RunAsync();
+
+// Cleanup on shutdown
+stateManager.StopAutoSave();

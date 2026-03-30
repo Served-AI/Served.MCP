@@ -150,6 +150,8 @@ public class ToolGroupRegistry
                         _groups[prop.Name] = g;
                     }
                     _initialized = true;
+                    // Migrate: inject missing default groups into existing config
+                    MigrateDefaults();
                     Console.Error.WriteLine($"[MCP] Loaded {_groups.Count} tool groups from {_configPath}");
                     return;
                 }
@@ -180,7 +182,8 @@ public class ToolGroupRegistry
             {
                 "GetUserContext", "GetTenantContext", "GetProjectContext",
                 "BootstrapGetUser", "BootstrapGetTenant", "BootstrapGetWorkspace",
-                "SearchProjects", "SearchTasks", "SearchCustomers"
+                "SearchProjects", "SearchTasks", "SearchCustomers",
+                "create_plan", "get_current_plan"
             }
         });
 
@@ -410,6 +413,77 @@ public class ToolGroupRegistry
                 "DownloadGetManifest", "DownloadGetAudit", "DownloadCreateApiKey"
             }
         });
+
+        Add(new McpToolGroup
+        {
+            Name = "plan",
+            Description = "Plan notebook — create and track execution plans with subtasks",
+            Notes = "Auto-activated when an agent creates a plan via create_plan",
+            Tools = new()
+            {
+                "create_plan", "get_current_plan", "add_subtask",
+                "update_subtask_status", "finish_subtask", "revise_plan"
+            }
+        });
+    }
+
+    /// <summary>
+    /// Inject any new default groups that don't exist in the loaded config.
+    /// Also ensures core group has required tools (e.g. create_plan).
+    /// </summary>
+    private void MigrateDefaults()
+    {
+        var migrated = false;
+        var defaults = new Dictionary<string, McpToolGroup>();
+        var temp = new ToolGroupRegistry.__DefaultGroupBuilder(defaults);
+        temp.Build();
+
+        foreach (var (name, defGroup) in defaults)
+        {
+            if (!_groups.ContainsKey(name))
+            {
+                _groups[name] = defGroup;
+                migrated = true;
+                Console.Error.WriteLine($"[MCP] Migrated new tool group: {name}");
+            }
+        }
+
+        // Ensure core has plan entry points
+        if (_groups.TryGetValue("core", out var core))
+        {
+            foreach (var tool in new[] { "create_plan", "get_current_plan" })
+            {
+                if (!core.Tools.Contains(tool))
+                {
+                    core.Tools.Add(tool);
+                    migrated = true;
+                }
+            }
+        }
+
+        if (migrated) SaveConfig();
+    }
+
+    // Helper for migration — builds default groups into an external dictionary
+    internal class __DefaultGroupBuilder
+    {
+        private readonly Dictionary<string, McpToolGroup> _target;
+        public __DefaultGroupBuilder(Dictionary<string, McpToolGroup> target) => _target = target;
+        public void Build()
+        {
+            // Only add groups that might be missing from old configs
+            _target["plan"] = new McpToolGroup
+            {
+                Name = "plan",
+                Description = "Plan notebook — create and track execution plans with subtasks",
+                Notes = "Auto-activated when an agent creates a plan via create_plan",
+                Tools = new()
+                {
+                    "create_plan", "get_current_plan", "add_subtask",
+                    "update_subtask_status", "finish_subtask", "revise_plan"
+                }
+            };
+        }
     }
 
     private void Add(McpToolGroup group)
