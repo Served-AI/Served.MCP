@@ -6,6 +6,8 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <!-- Version inherited from Directory.Build.props -->
+    <!-- SDK version fallback for standalone builds (overridden by ServedApp's Directory.Build.props) -->
+    <ServedSdkVersion Condition="'$(ServedSdkVersion)' == ''">1.5.0</ServedSdkVersion>
     <AssemblyTitle>Served MCP Server</AssemblyTitle>
     <Description>MCP Server for AI assistants to interact with the Served platform via UnifiedHQ</Description>
     <Authors>UnifiedHQ, Thomas Helledi</Authors>
@@ -20,12 +22,9 @@
     <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
   </ItemGroup>
 
-  <!-- Use NuGet package for standalone builds, ProjectReference for ServedApp builds -->
-  <ItemGroup Condition="!Exists('..\Served.SDK\Served.SDK.csproj')">
-    <PackageReference Include="Served.SDK" Version="1.4.0" />
-  </ItemGroup>
-  <ItemGroup Condition="Exists('..\Served.SDK\Served.SDK.csproj')">
-    <ProjectReference Include="..\Served.SDK\Served.SDK.csproj" />
+  <!-- SDK NuGet Package (from Forge registry) -->
+  <ItemGroup>
+    <PackageReference Include="Served.SDK" Version="$(ServedSdkVersion)" />
   </ItemGroup>
 
 </Project>

@@ -44,7 +44,7 @@ if (string.IsNullOrEmpty(token) && !string.IsNullOrEmpty(email) && !string.IsNul
             token = loginJson["token"]?.ToString() ?? "";
 
             if (!string.IsNullOrEmpty(token))
-                Console.Error.WriteLine($"[MCP] Auto-login successful. Token expires in ~1h.");
+                Console.Error.WriteLine($"[MCP] Auto-login successful.");
             else
                 Console.Error.WriteLine($"[MCP] Auto-login failed: no token in response.");
         }
@@ -55,11 +55,50 @@ if (string.IsNullOrEmpty(token) && !string.IsNullOrEmpty(email) && !string.IsNul
     }
 }
 
+// Resolve tenant slug to numeric ID for X-Tenant-Id header
+// The API's GetManager.AssignMetaData needs tenant context for data queries.
+// Served-Tenant (slug) requires LoginService.UserId to resolve, but X-Tenant-Id (numeric) works directly.
+var tenantId = "";
+if (!string.IsNullOrEmpty(token) && !string.IsNullOrEmpty(tenant))
+{
+    try
+    {
+        using var bootstrapHttp = new HttpClient { BaseAddress = new Uri(baseUrl) };
+        bootstrapHttp.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+        bootstrapHttp.DefaultRequestHeaders.Add("Served-Tenant", tenant);
+        var userBootstrap = await bootstrapHttp.GetStringAsync("/api/core/bootstrap/user");
+        var bootstrapJson = JObject.Parse(userBootstrap);
+        var tenants = bootstrapJson["tenants"] as JArray;
+        var matchedTenant = tenants?.FirstOrDefault(t =>
+            string.Equals(t["slug"]?.ToString(), tenant, StringComparison.OrdinalIgnoreCase));
+        if (matchedTenant != null)
+        {
+            tenantId = matchedTenant["id"]?.ToString() ?? "";
+            Console.Error.WriteLine($"[MCP] Resolved tenant '{tenant}' to ID {tenantId}");
+        }
+        else
+        {
+            Console.Error.WriteLine($"[MCP] Warning: tenant '{tenant}' not found in user's tenants");
+        }
+    }
+    catch (Exception ex)
+    {
+        Console.Error.WriteLine($"[MCP] Warning: could not resolve tenant ID: {ex.Message}");
+    }
+}
+
 // SDK Initialization with Tracing
 var clientBuilder = new ServedClientBuilder()
     .WithBaseUrl(baseUrl)
     .WithToken(token)
     .WithTenant(tenant);
+
+// Add numeric tenant ID header for reliable tenant resolution
+// GetManager.AssignMetaData falls back to X-Tenant-Id when Served-Tenant slug resolution fails
+if (!string.IsNullOrEmpty(tenantId))
+{
+    clientBuilder.WithDefaultHeader("X-Tenant-Id", tenantId);
+}
 
 // Enable tracing if configured (default: on)
 if (enableTracing)
@@ -78,7 +117,7 @@ if (enableTracing)
 }
 
 using var client = clientBuilder.Build();
-var server = new McpServer(client, baseUrl, token, tenant);
+var server = new McpServer(client, baseUrl, token, tenant, tenantId);
 
 // Log startup info
 Console.Error.WriteLine($"[MCP] Served MCP Server v2026.2.1");

@@ -36,11 +36,11 @@ public class ToolDefinition
 /// - Walls: Tool registration and execution
 /// - Roof: Tracing and analytics
 /// </summary>
-public class McpServer(ServedClient servedClient, string baseUrl, string token, string tenant)
+public class McpServer(ServedClient servedClient, string baseUrl, string token, string tenant, string tenantId = "")
 {
     private readonly ServedClient _servedClient = servedClient;
     private readonly Dictionary<string, ToolDefinition> _tools = new();
-    private readonly HttpClient _httpClient = CreateHttpClient(baseUrl, token, tenant);
+    private readonly HttpClient _httpClient = CreateHttpClient(baseUrl, token, tenant, tenantId);
     private readonly string _baseUrl = baseUrl;
     private readonly string _tenant = tenant;
 
@@ -75,16 +75,22 @@ public class McpServer(ServedClient servedClient, string baseUrl, string token, 
     /// </summary>
     public IServedTracer? Tracer => _servedClient.Tracer;
 
-    private static HttpClient CreateHttpClient(string baseUrl, string token, string tenant)
+    private static HttpClient CreateHttpClient(string baseUrl, string token, string tenant, string tenantId)
     {
         var client = new HttpClient { BaseAddress = new Uri(baseUrl) };
         if (!string.IsNullOrEmpty(token))
         {
             client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
         }
+        // Send tenant slug for Served-Tenant header (used by GetManager.AssignMetaData primary path)
         if (!string.IsNullOrEmpty(tenant))
         {
-            client.DefaultRequestHeaders.Add("X-Tenant-Id", tenant);
+            client.DefaultRequestHeaders.Add("Served-Tenant", tenant);
+        }
+        // Send numeric tenant ID for X-Tenant-Id header (fallback when slug resolution fails)
+        if (!string.IsNullOrEmpty(tenantId))
+        {
+            client.DefaultRequestHeaders.Add("X-Tenant-Id", tenantId);
         }
         return client;
     }
