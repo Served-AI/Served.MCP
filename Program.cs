@@ -16,15 +16,43 @@ using Served.SDK.Utilities;
 // Configuration - Load from env vars
 var baseUrl = Environment.GetEnvironmentVariable("SERVED_API_URL") ?? "https://app.served.dk";
 var token = Environment.GetEnvironmentVariable("SERVED_API_TOKEN") ?? "";
+var apiKey = Environment.GetEnvironmentVariable("SERVED_API_KEY") ?? "";
 var tenant = Environment.GetEnvironmentVariable("SERVED_TENANT") ?? "";
 var email = Environment.GetEnvironmentVariable("SERVED_EMAIL") ?? "";
 var password = Environment.GetEnvironmentVariable("SERVED_PASSWORD") ?? "";
 var enableTracing = Environment.GetEnvironmentVariable("SERVED_TRACING_ENABLED")?.Equals("true", StringComparison.OrdinalIgnoreCase) ?? true;
 
-// Auto-login if no token but credentials provided
-if (string.IsNullOrEmpty(token) && !string.IsNullOrEmpty(email) && !string.IsNullOrEmpty(password))
+// Auth priority: API key > valid JWT token > auto-login with credentials
+// API keys never expire and don't need refresh — most stable for development
+if (!string.IsNullOrEmpty(apiKey))
 {
-    Console.Error.WriteLine($"[MCP] No token provided. Auto-login with {email}...");
+    token = apiKey;
+    Console.Error.WriteLine($"[MCP] Using API key (long-lived, no refresh needed)");
+}
+else if (!string.IsNullOrEmpty(token))
+{
+    // Check if JWT token is expired or about to expire (within 5 min)
+    var expiry = ParseJwtExpiry(token);
+    if (expiry < DateTime.UtcNow.AddMinutes(5))
+    {
+        Console.Error.WriteLine($"[MCP] Token expired ({expiry:HH:mm:ss} UTC). Auto-refreshing...");
+        token = await AutoLogin(baseUrl, email, password) ?? token;
+    }
+    else
+    {
+        Console.Error.WriteLine($"[MCP] Token valid until {expiry:HH:mm:ss} UTC");
+    }
+}
+else if (!string.IsNullOrEmpty(email) && !string.IsNullOrEmpty(password))
+{
+    Console.Error.WriteLine($"[MCP] No token. Auto-login with {email}...");
+    token = await AutoLogin(baseUrl, email, password) ?? "";
+}
+
+// Auto-login helper
+static async Task<string?> AutoLogin(string baseUrl, string email, string password)
+{
+    if (string.IsNullOrEmpty(email) || string.IsNullOrEmpty(password)) return null;
     try
     {
         using var authHttp = new HttpClient { BaseAddress = new Uri(baseUrl) };
@@ -33,26 +61,45 @@ if (string.IsNullOrEmpty(token) && !string.IsNullOrEmpty(email) && !string.IsNul
         var regResp = await authHttp.GetStringAsync($"/api/identity/account/Register?visitorId={visitorId}");
         var browserToken = JObject.Parse(regResp)["token"]?.ToString();
 
-        if (!string.IsNullOrEmpty(browserToken))
-        {
-            authHttp.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", browserToken);
-            var loginPayload = new StringContent(
-                $"{{\"email\":\"{email}\",\"password\":\"{password}\"}}",
-                Encoding.UTF8, "application/json");
-            var loginResp = await authHttp.PostAsync("/api/identity/account/login", loginPayload);
-            var loginJson = JObject.Parse(await loginResp.Content.ReadAsStringAsync());
-            token = loginJson["token"]?.ToString() ?? "";
+        if (string.IsNullOrEmpty(browserToken)) { Console.Error.WriteLine("[MCP] Browser registration failed"); return null; }
 
-            if (!string.IsNullOrEmpty(token))
-                Console.Error.WriteLine($"[MCP] Auto-login successful.");
-            else
-                Console.Error.WriteLine($"[MCP] Auto-login failed: no token in response.");
+        authHttp.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", browserToken);
+        var loginPayload = new StringContent(
+            Newtonsoft.Json.JsonConvert.SerializeObject(new { email, password }),
+            Encoding.UTF8, "application/json");
+        var loginResp = await authHttp.PostAsync("/api/identity/account/login", loginPayload);
+        var loginJson = JObject.Parse(await loginResp.Content.ReadAsStringAsync());
+        var newToken = loginJson["token"]?.ToString();
+
+        if (!string.IsNullOrEmpty(newToken))
+        {
+            Console.Error.WriteLine($"[MCP] Auto-login successful.");
+            return newToken;
         }
+        Console.Error.WriteLine($"[MCP] Auto-login failed: no token in response.");
+        return null;
     }
     catch (Exception ex)
     {
         Console.Error.WriteLine($"[MCP] Auto-login failed: {ex.Message}");
+        return null;
     }
+}
+
+// JWT expiry parser (shared with McpServer)
+static DateTime ParseJwtExpiry(string? jwt)
+{
+    if (string.IsNullOrEmpty(jwt)) return DateTime.MinValue;
+    try
+    {
+        var parts = jwt.Split('.');
+        if (parts.Length < 2) return DateTime.MinValue;
+        var payload = parts[1].PadRight(parts[1].Length + (4 - parts[1].Length % 4) % 4, '=');
+        var json = Encoding.UTF8.GetString(Convert.FromBase64String(payload));
+        var exp = JObject.Parse(json)["exp"]?.Value<long>();
+        return exp == null ? DateTime.MaxValue : DateTimeOffset.FromUnixTimeSeconds(exp.Value).UtcDateTime;
+    }
+    catch { return DateTime.MinValue; }
 }
 
 // Resolve tenant slug to numeric ID for X-Tenant-Id header
@@ -119,6 +166,13 @@ if (enableTracing)
 using var client = clientBuilder.Build();
 var server = new McpServer(client, baseUrl, token, tenant, tenantId);
 
+// Tool Group Registry — reduces context window waste by filtering inactive tools
+var toolGroupRegistry = new ToolGroupRegistry();
+server.SetToolGroupRegistry(toolGroupRegistry);
+var activeCount = toolGroupRegistry.ListGroups().Count(g => g.Active);
+var totalCount = toolGroupRegistry.ListGroups().Count;
+Console.Error.WriteLine($"[MCP] Tool groups: {activeCount} active / {totalCount} total");
+
 // Log startup info
 Console.Error.WriteLine($"[MCP] Served MCP Server v2026.2.1");
 Console.Error.WriteLine($"[MCP] Tracing enabled: {client.IsTracingEnabled}");
@@ -177,6 +231,11 @@ Console.Error.WriteLine($"[MCP] Registered Suno music generation tools");
 // Infra - UnifiedInfra IaC (plan, apply, recommend, status, cost)
 InfraTools.Register(server, client);
 Console.Error.WriteLine($"[MCP] Registered UnifiedInfra IaC tools");
+
+// ----------------------------------------------------------------------
+// ROOF: Tool Group Management (meta-tools, always visible)
+// ----------------------------------------------------------------------
+ToolGroupTools.Register(server, toolGroupRegistry);
 
 // ----------------------------------------------------------------------
 // Start the server

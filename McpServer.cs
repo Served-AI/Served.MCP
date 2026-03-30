@@ -6,6 +6,7 @@ using System.Net.Http.Headers;
 using System.Text;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using Served.MCP.Tools;
 using Served.SDK.Client;
 using Served.SDK.Tracing;
 
@@ -54,7 +55,11 @@ public class McpServer(ServedClient servedClient, string baseUrl, string token, 
     private string? _password = Environment.GetEnvironmentVariable("SERVED_PASSWORD");
     private string? _apiKey = Environment.GetEnvironmentVariable("SERVED_API_KEY");
     private readonly SemaphoreSlim _refreshLock = new(1, 1);
-    private DateTime _tokenExpiry = DateTime.UtcNow.AddHours(1);
+    private DateTime _tokenExpiry = ParseJwtExpiry(Environment.GetEnvironmentVariable("SERVED_API_TOKEN"));
+
+    // Tool group filtering
+    private ToolGroupRegistry? _toolGroupRegistry;
+    public void SetToolGroupRegistry(ToolGroupRegistry registry) => _toolGroupRegistry = registry;
 
     // Session tracking
     public string? SessionId { get; set; }
@@ -426,7 +431,7 @@ public class McpServer(ServedClient servedClient, string baseUrl, string token, 
                 protocolVersion = ProtocolVersion,
                 capabilities = new
                 {
-                    tools = new { listChanged = false },
+                    tools = new { listChanged = true },
                     resources = new { subscribe = false, listChanged = false },
                     prompts = new { listChanged = false },
                     logging = new { }
@@ -447,12 +452,16 @@ public class McpServer(ServedClient servedClient, string baseUrl, string token, 
     /// </summary>
     private void HandleToolsList(string? id)
     {
-        var tools = _tools.Values.Select(t => new
-        {
-            name = t.Name,
-            description = t.Description,
-            inputSchema = t.InputSchema
-        }).ToList();
+        var activeNames = _toolGroupRegistry?.GetActiveToolNames();
+
+        var tools = _tools.Values
+            .Where(t => activeNames == null || activeNames.Contains(t.Name))
+            .Select(t => new
+            {
+                name = t.Name,
+                description = t.Description,
+                inputSchema = t.InputSchema
+            }).ToList();
 
         var response = new
         {
@@ -474,6 +483,16 @@ public class McpServer(ServedClient servedClient, string baseUrl, string token, 
 
         if (toolName != null && _tools.TryGetValue(toolName, out var toolDef))
         {
+            // Check if tool is active (group filtering)
+            var activeNames = _toolGroupRegistry?.GetActiveToolNames();
+            if (activeNames != null && !activeNames.Contains(toolName))
+            {
+                SendError(id, -32602,
+                    $"Tool '{toolName}' is not active. Use activate_tool_group to enable its group first. " +
+                    $"Call list_tool_groups to see available groups.");
+                return;
+            }
+
             // Create tracing span for the tool call
             using var span = Tracer?.StartSpan($"mcp.tool.{toolName}", SpanKind.Server);
             span?.SetAttribute("mcp.tool.name", toolName);
@@ -633,6 +652,31 @@ public class McpServer(ServedClient servedClient, string baseUrl, string token, 
     }
 
     /// <summary>
+    /// Parse JWT expiry from token. Returns MinValue if unparseable (forces refresh on first auth error).
+    /// </summary>
+    private static DateTime ParseJwtExpiry(string? token)
+    {
+        if (string.IsNullOrEmpty(token)) return DateTime.MinValue;
+        try
+        {
+            var parts = token.Split('.');
+            if (parts.Length < 2) return DateTime.MinValue;
+            var payload = parts[1];
+            // Pad base64
+            payload = payload.PadRight(payload.Length + (4 - payload.Length % 4) % 4, '=');
+            var json = Encoding.UTF8.GetString(Convert.FromBase64String(payload));
+            var obj = JObject.Parse(json);
+            var exp = obj["exp"]?.Value<long>();
+            if (exp == null) return DateTime.MaxValue; // No expiry = long-lived
+            return DateTimeOffset.FromUnixTimeSeconds(exp.Value).UtcDateTime;
+        }
+        catch
+        {
+            return DateTime.MinValue;
+        }
+    }
+
+    /// <summary>
     /// Check if an exception indicates an auth/token error (401, 403, ServiceUnavailable).
     /// </summary>
     private static bool IsAuthError(Exception ex)
@@ -694,6 +738,28 @@ public class McpServer(ServedClient servedClient, string baseUrl, string token, 
     private void SendResponse(object response)
     {
         Console.WriteLine(JsonConvert.SerializeObject(response, Formatting.None));
+    }
+
+    /// <summary>
+    /// Send an MCP notification (no id, no response expected).
+    /// Used for events like tools/list_changed.
+    /// </summary>
+    public void SendNotification(string method, object? @params = null)
+    {
+        var notification = @params != null
+            ? new { jsonrpc = "2.0", method, @params }
+            : (object)new { jsonrpc = "2.0", method };
+        Console.WriteLine(JsonConvert.SerializeObject(notification, Formatting.None));
+    }
+
+    /// <summary>
+    /// Notify the client that the tool list has changed (e.g. after group activation).
+    /// The client should re-fetch the tool list via tools/list.
+    /// </summary>
+    public void NotifyToolsChanged()
+    {
+        SendNotification("notifications/tools/list_changed");
+        Console.Error.WriteLine("[MCP] Sent tools/list_changed notification");
     }
 
     private void SendError(string? id, int code, string message)

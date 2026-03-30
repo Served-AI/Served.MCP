@@ -1,4 +1,5 @@
 using System.Net.Http.Json;
+using System.Text.Json;
 using Newtonsoft.Json.Linq;
 using Served.SDK.Client;
 
@@ -96,12 +97,13 @@ public static class AtlasControlTools
 
         // Screenshot
         server.RegisterTool("AtlasScreenshot",
-            "Take a screenshot of a window. Returns base64 PNG data.",
+            "Take a screenshot of a window. Returns base64 data or saves to file when savePath is provided.",
             async (args) =>
             {
                 var windowId = args["windowId"]?.Value<int?>();
                 var appName = args["appName"]?.Value<string>();
                 var immediate = args["immediate"]?.Value<bool>() ?? false;
+                var savePath = args["savePath"]?.Value<string>();
 
                 if (windowId == null && string.IsNullOrEmpty(appName))
                     return new { success = false, error = "Provide windowId or appName" };
@@ -114,7 +116,32 @@ public static class AtlasControlTools
                         : (object)new { appName = appName };
 
                     var response = await http.PostAsJsonAsync(endpoint, dto);
-                    return await response.Content.ReadAsStringAsync();
+                    var raw = await response.Content.ReadAsStringAsync();
+
+                    if (!string.IsNullOrEmpty(savePath))
+                    {
+                        try
+                        {
+                            var json = JObject.Parse(raw);
+                            var base64Data = json["data"]?.Value<string>();
+                            if (!string.IsNullOrEmpty(base64Data))
+                            {
+                                var bytes = Convert.FromBase64String(base64Data);
+                                var dir = Path.GetDirectoryName(savePath);
+                                if (!string.IsNullOrEmpty(dir))
+                                    Directory.CreateDirectory(dir);
+                                await File.WriteAllBytesAsync(savePath, bytes);
+                                var format = json["format"]?.Value<string>() ?? "jpeg";
+                                return new { success = true, path = savePath, size = bytes.Length, format };
+                            }
+                        }
+                        catch (JsonException)
+                        {
+                            // Response wasn't JSON with data field, save raw
+                        }
+                    }
+
+                    return raw;
                 }
                 catch (Exception ex)
                 {
@@ -128,7 +155,8 @@ public static class AtlasControlTools
                 {
                     ["windowId"] = new JObject { ["type"] = "integer", ["description"] = "Window ID to screenshot" },
                     ["appName"] = new JObject { ["type"] = "string", ["description"] = "Application name to screenshot" },
-                    ["immediate"] = new JObject { ["type"] = "boolean", ["description"] = "Skip animation, capture immediately" }
+                    ["immediate"] = new JObject { ["type"] = "boolean", ["description"] = "Skip animation, capture immediately" },
+                    ["savePath"] = new JObject { ["type"] = "string", ["description"] = "File path to save screenshot (returns path instead of base64)" }
                 }
             });
 
