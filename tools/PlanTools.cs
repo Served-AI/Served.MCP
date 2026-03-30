@@ -27,7 +27,7 @@ public static class PlanTools
                 if (string.IsNullOrEmpty(title))
                     return new { success = false, error = "Missing required parameter: title" };
 
-                var subtaskNames = args["subtasks"]?.ToObject<List<string>>() ?? new();
+                var subtaskNames = ParseStringList(args["subtasks"]);
                 if (subtaskNames.Count == 0)
                     return new { success = false, error = "At least one subtask is required" };
 
@@ -256,7 +256,7 @@ public static class PlanTools
                 state.CurrentPlan.RevisionNotes.Add($"[{DateTime.UtcNow:HH:mm}] {note}");
 
                 // Abandon specified subtasks
-                var abandonIds = args["abandon"]?.ToObject<List<string>>() ?? new();
+                var abandonIds = ParseStringList(args["abandon"]);
                 foreach (var id in abandonIds)
                 {
                     var st = state.CurrentPlan.SubTasks.FirstOrDefault(s => s.Id == id);
@@ -270,7 +270,7 @@ public static class PlanTools
                 }
 
                 // Add new subtasks
-                var newTasks = args["add"]?.ToObject<List<string>>() ?? new();
+                var newTasks = ParseStringList(args["add"]);
                 foreach (var title in newTasks)
                 {
                     state.CurrentPlan.SubTasks.Add(new SubTask
@@ -309,5 +309,25 @@ public static class PlanTools
             });
 
         Console.Error.WriteLine($"[MCP] Registered plan notebook tools (create, get, add, update, finish, revise)");
+    }
+
+    /// <summary>
+    /// Parse a JToken that may be a JArray or a JSON string containing an array.
+    /// Claude Code sometimes sends arrays as strings.
+    /// </summary>
+    private static List<string> ParseStringList(JToken? token)
+    {
+        if (token == null) return new();
+        if (token is JArray arr) return arr.Select(t => t.Value<string>() ?? "").Where(s => s != "").ToList();
+        var str = token.Value<string>();
+        if (string.IsNullOrEmpty(str)) return new();
+        try
+        {
+            return JArray.Parse(str).Select(t => t.Value<string>() ?? "").Where(s => s != "").ToList();
+        }
+        catch
+        {
+            return new() { str }; // Single item
+        }
     }
 }
