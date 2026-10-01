@@ -503,6 +503,7 @@ public class McpServer(ServedClient servedClient, string baseUrl, string token, 
             try
             {
                 object result;
+                Served.SDK.Client.ContractWarnings.Begin();
                 try
                 {
                     result = await toolDef.Handler(arguments);
@@ -523,6 +524,12 @@ public class McpServer(ServedClient servedClient, string baseUrl, string token, 
                 stopwatch.Stop();
 
                 var resultText = FormatResult(result);
+
+                // The API answers 200 even when it ignored a request field — say so, or the agent
+                // believes a change happened that didn't
+                var ignored = Served.SDK.Client.ContractWarnings.Take();
+                if (ignored.Count > 0)
+                    resultText += "\n\n⚠ Not applied — the API ignored these request fields:\n- " + string.Join("\n- ", ignored);
 
                 span?.SetAttribute("mcp.result.size", resultText.Length);
                 span?.SetAttribute("mcp.success", true);
@@ -738,6 +745,7 @@ public class McpServer(ServedClient servedClient, string baseUrl, string token, 
     private void SendResponse(object response)
     {
         Console.WriteLine(JsonConvert.SerializeObject(response, Formatting.None));
+        Console.Out.Flush();  // Critical for MCP stdio transport - ensures client receives tools/list etc.
     }
 
     /// <summary>
@@ -750,6 +758,7 @@ public class McpServer(ServedClient servedClient, string baseUrl, string token, 
             ? new { jsonrpc = "2.0", method, @params }
             : (object)new { jsonrpc = "2.0", method };
         Console.WriteLine(JsonConvert.SerializeObject(notification, Formatting.None));
+        Console.Out.Flush();  // Critical for MCP stdio transport
     }
 
     /// <summary>
@@ -771,5 +780,6 @@ public class McpServer(ServedClient servedClient, string baseUrl, string token, 
             error = new { code, message }
         };
         Console.WriteLine(JsonConvert.SerializeObject(response, Formatting.None));
+        Console.Out.Flush();  // Critical for MCP stdio transport
     }
 }

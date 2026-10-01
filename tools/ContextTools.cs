@@ -30,21 +30,21 @@ public static class ContextTools
                 sb.AppendLine($"  name: \"{bootstrap.FirstName} {bootstrap.LastName}\"");
                 sb.AppendLine();
 
+                // Workspaces nested under their tenant — slugs are only unique within a tenant,
+                // and every workspace-scoped call needs both slugs
                 var tenants = bootstrap.Tenants ?? [];
+                var workspaces = bootstrap.Workspaces ?? [];
                 sb.AppendLine($"  tenants: [{tenants.Count}] {{");
                 foreach (var tenant in tenants)
                 {
-                    sb.AppendLine($"    @tenant[{tenant.Id}] {{ name: \"{tenant.Name}\", slug: \"{tenant.Slug}\" }}");
+                    var tenantWorkspaces = workspaces.Where(w => w.TenantId == tenant.Id).ToList();
+                    sb.AppendLine($"    @tenant[{tenant.Id}] {{ name: \"{tenant.Name}\", slug: \"{tenant.Slug}\", workspaces: [{tenantWorkspaces.Count}] }}");
+                    foreach (var ws in tenantWorkspaces)
+                        sb.AppendLine($"      @workspace[{ws.Id}] {{ name: \"{ws.Name}\", slug: \"{ws.Slug}\" }}");
                 }
-                sb.AppendLine("  }");
-                sb.AppendLine();
-
-                var workspaces = bootstrap.Workspaces ?? [];
-                sb.AppendLine($"  workspaces: [{workspaces.Count}] {{");
-                foreach (var ws in workspaces)
-                {
-                    sb.AppendLine($"    @workspace[{ws.Id}] {{ name: \"{ws.Name}\", slug: \"{ws.Slug}\" }}");
-                }
+                var tenantIds = tenants.Select(t => t.Id).ToHashSet();
+                foreach (var ws in workspaces.Where(w => !tenantIds.Contains(w.TenantId)))
+                    sb.AppendLine($"    @workspace[{ws.Id}] {{ name: \"{ws.Name}\", slug: \"{ws.Slug}\", tenantId: {ws.TenantId} }}");
                 sb.AppendLine("  }");
                 sb.AppendLine("}");
 
@@ -68,11 +68,21 @@ public static class ContextTools
                 sb.AppendLine();
 
                 var features = data.Features ?? [];
-                sb.AppendLine($"  features: [{features.Count}] {{");
-                foreach (var f in features)
-                {
-                    sb.AppendLine($"    {f.Key}: {f.IsEnabled}");
-                }
+                var enabled = features.Where(f => f.IsEnabled).Select(f => f.Key).ToList();
+                sb.AppendLine($"  features enabled ({enabled.Count} of {features.Count}): [{string.Join(", ", enabled)}]");
+                sb.AppendLine();
+
+                var user = await client.Bootstrap.GetUserAsync();
+                var workspaces = (user.Workspaces ?? []).Where(w => w.TenantId == tenant?.Id).ToList();
+                sb.AppendLine($"  workspaces: [{workspaces.Count}] {{");
+                foreach (var ws in workspaces)
+                    sb.AppendLine($"    @workspace[{ws.Id}] {{ name: \"{ws.Name}\", slug: \"{ws.Slug}\" }}");
+                sb.AppendLine("  }");
+
+                var employees = data.Employees ?? [];
+                sb.AppendLine($"  team: [{employees.Count}] {{");
+                foreach (var e in employees)
+                    sb.AppendLine($"    @user[{e.UserId}] {{ name: \"{e.Name}\", initials: \"{e.Initials}\"{(string.IsNullOrEmpty(e.JobTitle) ? "" : $", title: \"{e.JobTitle}\"")} }}");
                 sb.AppendLine("  }");
                 sb.AppendLine();
 
@@ -127,22 +137,54 @@ public static class ContextTools
             });
 
         server.RegisterTool("GetProjectContext",
-            "Get comprehensive project context including tasks, team, and recent activity.",
+            "Get project context: dates, progress, open tasks (due date, priority, assignee), task counts and the team working on it.",
             async (args) =>
             {
                 var projectId = args["projectId"]?.Value<int>() ?? throw new ArgumentException("projectId required");
 
                 var project = await client.Projects.GetAsync(projectId);
+                var tasks = await client.Tasks.GetByProjectAsync(projectId, includeCompleted: true);
+                var today = DateTime.UtcNow.Date;
+                var open = tasks.Where(t => !t.IsCompleted).ToList();
+                var overdue = open.Count(t => t.DueDate < today);
 
                 var sb = new StringBuilder();
                 sb.AppendLine($"@projectContext[{projectId}] {{");
                 sb.AppendLine($"  name: \"{project.Name}\"");
-                sb.AppendLine($"  description: \"{project.Description}\"");
-                sb.AppendLine($"  status: \"{project.ProjectStatusId}\"");
-                sb.AppendLine($"  customerId: {project.CustomerId}");
+                if (!string.IsNullOrWhiteSpace(project.Description))
+                    sb.AppendLine($"  description: \"{project.Description}\"");
+                sb.AppendLine($"  statusId: {project.ProjectStatusId}");
+                if (project.CustomerId.HasValue)
+                    sb.AppendLine($"  customerId: {project.CustomerId}");
                 sb.AppendLine($"  progress: {project.Progress}%");
-                sb.AppendLine($"  startDate: \"{project.StartDate}\"");
-                sb.AppendLine($"  endDate: \"{project.EndDate}\"");
+                sb.AppendLine($"  dates: {project.StartDate:yyyy-MM-dd} → {project.EndDate:yyyy-MM-dd}");
+                sb.AppendLine($"  tasks: {{ total: {tasks.Count}, open: {open.Count}, done: {tasks.Count - open.Count}, overdue: {overdue} }}");
+
+                // The task list carries assignee ids only — names come from the employee list
+                var names = (await client.Employees.ListAsync(limit: 500))
+                    .GroupBy(e => e.EmployeeId).ToDictionary(g => g.Key, g => g.First().FullName);
+                string NameOf(int? userId) => userId is { } id && names.TryGetValue(id, out var n) ? n ?? $"user {id}" : $"user {userId}";
+
+                var team = tasks.Where(t => t.AssignedTo.HasValue)
+                    .GroupBy(t => t.AssignedTo!.Value)
+                    .Select(g => (Id: g.Key, Name: NameOf(g.Key), Open: g.Count(t => !t.IsCompleted)))
+                    .OrderByDescending(m => m.Open)
+                    .ToList();
+                sb.AppendLine($"  team: [{team.Count}] {{");
+                foreach (var m in team)
+                    sb.AppendLine($"    @user[{m.Id}] {{ name: \"{m.Name}\", openTasks: {m.Open} }}");
+                sb.AppendLine("  }");
+
+                sb.AppendLine($"  openTasks: [{open.Count}] {{");
+                foreach (var t in open.OrderBy(t => t.DueDate ?? DateTime.MaxValue).Take(50))
+                {
+                    var due = t.DueDate.HasValue ? $", due: {t.DueDate:yyyy-MM-dd}{(t.DueDate < today ? " (overdue)" : "")}" : "";
+                    var assignee = t.AssignedTo.HasValue ? $", assignee: \"{NameOf(t.AssignedTo)}\"" : "";
+                    var priority = t.Priority.HasValue ? $", priority: {(int)t.Priority.Value}" : "";
+                    sb.AppendLine($"    @task[{t.Id}] {{ name: \"{t.Name}\", status: {t.Status}{priority}{due}{assignee} }}");
+                }
+                if (open.Count > 50) sb.AppendLine($"    ...and {open.Count - 50} more");
+                sb.AppendLine("  }");
                 sb.AppendLine("}");
 
                 return sb.ToString();
