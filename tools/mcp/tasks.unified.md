@@ -347,6 +347,25 @@ Execute bulk update after user confirmation.
 
 ---
 
+## Session tools in hosted sessions
+
+A hosted Served session (Chat & Code, an agent's live Claude process on a UnifiedHost device) gets its own small MCP server,
+`served-session`, from UnifiedHost (`unified-host mcp --session-dir …`). These tools are **not** in this server's registry: they
+use the session's current turn token against `api/integration/agent-runs/self/*`, so they reach only the session's task and its
+subtasks, work only while a turn runs, and are refused in a private session. Spec: docs/specs/agent-platform/2026-10-05-AGENT-TASKS.md §5.1.
+
+| Tool | Does | API |
+|------|------|-----|
+| GetTaskContext | The session's task (name, description, state, project) and visibility — or "Ingen opgave" | `GET self/context` |
+| AttachSessionToTask | Link the session to a task: `taskId` (one its person may read) or `name` (+ `projectId`, default the current task's project) | `POST self/task` |
+| PostTaskUpdate | Write an update in the task's conversation (`text`); doesn't wake the agent | `POST self/messages` |
+| SetTaskProgress | `progress` 0–100 on the session's task, or `taskId` of one of its subtasks | `PATCH self/progress` |
+| AddSubtask | A subtask (`name`, `description`) under the session's task or `parentTaskId` (one of its subtasks) — e.g. a plan step | `POST self/subtasks` |
+
+Errors: `NO_TASK` (409, attach first), `OUTSIDE_SESSION_TASK` (403), `SESSION_PRIVATE` (403), "Ingen aktiv tur" (between turns).
+
+---
+
 ## Workflows
 
 ### Hierarchical Task Structure

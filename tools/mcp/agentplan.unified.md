@@ -193,7 +193,8 @@ AI: "Analysis complete. Implementing feature..."
 - Use AgentPlanGet to check progress during long tasks
 - Mark todos as `in_progress` before starting work
 - Use `skipped` for items that become irrelevant
-- Plan todos sync with linked Served tasks
+- Plans live only in this MCP process (they are not synced to Served tasks). In a hosted Served session, put plan steps on the
+  session's task with the session tool `AddSubtask` (see tasks.unified.md → Session tools in hosted sessions)
 
 ---
 
