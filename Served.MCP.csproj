@@ -27,4 +27,38 @@
     <PackageReference Include="Served.SDK" Version="$(ServedSdkVersion)" />
   </ItemGroup>
 
+  <!-- Build stamp: the Served.MCP and Served.SDK commits this binary is built from, read back by
+       served_mcp_info, serverInfo.version and `served mcp status` (which compares it with HEAD).
+       Outside a git checkout (Docker) the commits are "unknown". -->
+  <Target Name="ServedMcpBuildStamp" BeforeTargets="GetAssemblyAttributes">
+    <PropertyGroup>
+      <_StampSdkDir>$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)/../Served.SDK'))</_StampSdkDir>
+    </PropertyGroup>
+    <Exec Command="git -C &quot;$(MSBuildProjectDirectory)&quot; rev-parse HEAD" ConsoleToMSBuild="true" IgnoreExitCode="true" EchoOff="true" StandardOutputImportance="low" StandardErrorImportance="low">
+      <Output TaskParameter="ConsoleOutput" PropertyName="_StampMcpCommit" />
+      <Output TaskParameter="ExitCode" PropertyName="_StampMcpExit" />
+    </Exec>
+    <Exec Command="git -C &quot;$(MSBuildProjectDirectory)&quot; status --porcelain --untracked-files=no" Condition="'$(_StampMcpExit)' == '0'" ConsoleToMSBuild="true" IgnoreExitCode="true" EchoOff="true" StandardOutputImportance="low" StandardErrorImportance="low">
+      <Output TaskParameter="ConsoleOutput" PropertyName="_StampMcpStatus" />
+    </Exec>
+    <Exec Command="git -C &quot;$(_StampSdkDir)&quot; rev-parse HEAD" Condition="Exists('$(_StampSdkDir)')" ConsoleToMSBuild="true" IgnoreExitCode="true" EchoOff="true" StandardOutputImportance="low" StandardErrorImportance="low">
+      <Output TaskParameter="ConsoleOutput" PropertyName="_StampSdkCommit" />
+      <Output TaskParameter="ExitCode" PropertyName="_StampSdkExit" />
+    </Exec>
+    <Exec Command="git -C &quot;$(_StampSdkDir)&quot; status --porcelain --untracked-files=no" Condition="'$(_StampSdkExit)' == '0'" ConsoleToMSBuild="true" IgnoreExitCode="true" EchoOff="true" StandardOutputImportance="low" StandardErrorImportance="low">
+      <Output TaskParameter="ConsoleOutput" PropertyName="_StampSdkStatus" />
+    </Exec>
+    <ItemGroup>
+      <AssemblyMetadata Include="McpCommit" Value="$(_StampMcpCommit)" Condition="'$(_StampMcpExit)' == '0'" />
+      <AssemblyMetadata Include="McpCommit" Value="unknown" Condition="'$(_StampMcpExit)' != '0'" />
+      <AssemblyMetadata Include="McpDirty" Value="true" Condition="'$(_StampMcpStatus)' != ''" />
+      <AssemblyMetadata Include="McpDirty" Value="false" Condition="'$(_StampMcpStatus)' == ''" />
+      <AssemblyMetadata Include="SdkCommit" Value="$(_StampSdkCommit)" Condition="'$(_StampSdkExit)' == '0'" />
+      <AssemblyMetadata Include="SdkCommit" Value="unknown" Condition="'$(_StampSdkExit)' != '0'" />
+      <AssemblyMetadata Include="SdkDirty" Value="true" Condition="'$(_StampSdkStatus)' != ''" />
+      <AssemblyMetadata Include="SdkDirty" Value="false" Condition="'$(_StampSdkStatus)' == ''" />
+      <AssemblyMetadata Include="BuiltAtUtc" Value="$([System.DateTime]::UtcNow.ToString('s'))Z" />
+    </ItemGroup>
+  </Target>
+
 </Project>

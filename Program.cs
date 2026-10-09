@@ -23,6 +23,27 @@ var email = Environment.GetEnvironmentVariable("SERVED_EMAIL") ?? "";
 var password = Environment.GetEnvironmentVariable("SERVED_PASSWORD") ?? "";
 var enableTracing = Environment.GetEnvironmentVariable("SERVED_TRACING_ENABLED")?.Equals("true", StringComparison.OrdinalIgnoreCase) ?? true;
 
+// Secrets live outside the repo — .mcp.json is committed. `served mcp auth` writes
+// ~/.served/mcp/credentials.json (0600): { "apiKey": "...", "token": "..." }; env vars still win.
+if (string.IsNullOrEmpty(apiKey) && string.IsNullOrEmpty(token))
+{
+    var credentialsPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".served", "mcp", "credentials.json");
+    if (File.Exists(credentialsPath))
+    {
+        try
+        {
+            var credentials = JObject.Parse(File.ReadAllText(credentialsPath));
+            apiKey = credentials["apiKey"]?.ToString() ?? "";
+            token = credentials["token"]?.ToString() ?? "";
+            Console.Error.WriteLine($"[MCP] Credentials from {credentialsPath}");
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"[MCP] Could not read {credentialsPath}: {ex.Message}");
+        }
+    }
+}
+
 // Auth priority: API key > valid JWT token > auto-login with credentials
 // API keys never expire and don't need refresh — most stable for development
 if (!string.IsNullOrEmpty(apiKey))
@@ -154,7 +175,7 @@ if (enableTracing)
     clientBuilder.WithTracing(options =>
     {
         options.ServiceName = "served-mcp-server";
-        options.ServiceVersion = "2026.2.1";
+        options.ServiceVersion = BuildStamp.ServerVersion;
         options.Environment = Environment.GetEnvironmentVariable("SERVED_ENVIRONMENT") ?? "development";
         options.EnableForge = true;
         options.ErrorDetection.CaptureSlowRequests = true;
@@ -175,15 +196,15 @@ var totalCount = toolGroupRegistry.ListGroups().Count;
 Console.Error.WriteLine($"[MCP] Tool groups: {activeCount} active / {totalCount} total");
 
 // Log startup info
-Console.Error.WriteLine($"[MCP] Served MCP Server v2026.2.1");
+Console.Error.WriteLine($"[MCP] Served MCP Server v{BuildStamp.ServerVersion} (built {BuildStamp.BuiltAtUtc})");
 Console.Error.WriteLine($"[MCP] Tracing enabled: {client.IsTracingEnabled}");
 Console.Error.WriteLine($"[MCP] Registering tools...");
 
 // ----------------------------------------------------------------------
-// FOUNDATION: Auto-Generated SDK Tools (135 tools)
+// FOUNDATION: Auto-Generated SDK Tools (Generated/ToolRegistrations.g.cs — served mcp generate)
 // ----------------------------------------------------------------------
 GeneratedToolRegistrations.RegisterAllTools(server, client);
-Console.Error.WriteLine($"[MCP] Registered 135 auto-generated SDK tools");
+Console.Error.WriteLine($"[MCP] Registered {GeneratedToolRegistrations.ToolCount} auto-generated SDK tools");
 
 // ----------------------------------------------------------------------
 // WALLS: Curated Manual Tools
@@ -237,6 +258,7 @@ Console.Error.WriteLine($"[MCP] Registered UnifiedInfra IaC tools");
 // ROOF: Tool Group Management + Plan Notebook + State Persistence
 // ----------------------------------------------------------------------
 ToolGroupTools.Register(server, toolGroupRegistry);
+McpInfoTools.Register(server, toolGroupRegistry);
 
 // Agent State Manager — filesystem-backed state persistence
 var stateManager = new AgentStateManager(server, toolGroupRegistry);
@@ -250,7 +272,10 @@ PlanTools.Register(server, toolGroupRegistry, stateManager);
 // ----------------------------------------------------------------------
 // Start the server
 // ----------------------------------------------------------------------
-Console.Error.WriteLine($"[MCP] All tools registered. Starting JSON-RPC server...");
+var ungrouped = toolGroupRegistry.UngroupedTools(server.GetRegisteredToolNames());
+if (ungrouped.Count > 0)
+    Console.Error.WriteLine($"[MCP] Warning: {ungrouped.Count} tool(s) belong to no tool group and are never listed: {string.Join(", ", ungrouped)}");
+Console.Error.WriteLine($"[MCP] All {server.ToolCount} tools registered. Starting JSON-RPC server...");
 await server.RunAsync();
 
 // Cleanup on shutdown

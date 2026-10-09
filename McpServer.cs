@@ -47,7 +47,7 @@ public class McpServer(ServedClient servedClient, string baseUrl, string token, 
 
     // Server metadata
     private const string ServerName = "served-mcp";
-    private const string ServerVersion = "2026.2.0";
+    private static readonly string ServerVersion = BuildStamp.ServerVersion;
     private const string ProtocolVersion = "2024-11-05";
 
     // Auth refresh
@@ -523,7 +523,7 @@ public class McpServer(ServedClient servedClient, string baseUrl, string token, 
 
                 stopwatch.Stop();
 
-                var resultText = FormatResult(result);
+                var resultText = McpResultFormatter.Format(result, DetailsToolFor(toolName));
 
                 // The API answers 200 even when it ignored a request field — say so, or the agent
                 // believes a change happened that didn't
@@ -572,90 +572,18 @@ public class McpServer(ServedClient servedClient, string baseUrl, string token, 
     }
 
     /// <summary>
-    /// Format tool result as compact markdown instead of verbose JSON.
-    /// Strings pass through as-is. Objects/arrays get markdown table/list format.
+    /// The tool that returns one item of what <paramref name="listTool"/> lists, when it exists:
+    /// GetProjects → GetProjectDetails, TaskGetByProject → GetTaskDetails.
     /// </summary>
-    private static string FormatResult(object result)
+    private string? DetailsToolFor(string listTool)
     {
-        if (result is string s) return s;
-
-        var json = JsonConvert.SerializeObject(result);
-        var token = JToken.Parse(json);
-
-        return token.Type switch
-        {
-            JTokenType.Array => FormatArray((JArray)token),
-            JTokenType.Object => FormatObject((JObject)token),
-            _ => token.ToString()
-        };
-    }
-
-    private static string FormatArray(JArray arr)
-    {
-        if (arr.Count == 0) return "*(empty)*";
-
-        // If array of objects, use markdown table
-        if (arr[0] is JObject firstObj)
-        {
-            var keys = firstObj.Properties().Select(p => p.Name).Take(8).ToList();
-            var sb = new StringBuilder();
-            sb.AppendLine($"**{arr.Count} items**\n");
-            sb.AppendLine("| " + string.Join(" | ", keys) + " |");
-            sb.AppendLine("| " + string.Join(" | ", keys.Select(_ => "---")) + " |");
-            foreach (var item in arr.Take(50))
-            {
-                if (item is JObject obj)
-                {
-                    var vals = keys.Select(k =>
-                    {
-                        var v = obj[k];
-                        if (v == null || v.Type == JTokenType.Null) return "-";
-                        var str = v.ToString().Replace("|", "\\|");
-                        return str.Length > 60 ? str[..57] + "..." : str;
-                    });
-                    sb.AppendLine("| " + string.Join(" | ", vals) + " |");
-                }
-            }
-            if (arr.Count > 50) sb.AppendLine($"\n*...and {arr.Count - 50} more*");
-            return sb.ToString();
-        }
-
-        // Simple array
-        return string.Join(", ", arr.Select(x => x.ToString()));
-    }
-
-    private static string FormatObject(JObject obj)
-    {
-        var sb = new StringBuilder();
-        foreach (var prop in obj.Properties())
-        {
-            var val = prop.Value;
-            if (val == null || val.Type == JTokenType.Null) continue;
-
-            if (val is JArray childArr && childArr.Count > 0 && childArr[0] is JObject)
-            {
-                sb.AppendLine($"\n### {prop.Name}");
-                sb.AppendLine(FormatArray(childArr));
-            }
-            else if (val is JArray simpleArr)
-            {
-                sb.AppendLine($"- **{prop.Name}**: {string.Join(", ", simpleArr.Select(x => x.ToString()))}");
-            }
-            else if (val is JObject childObj)
-            {
-                sb.AppendLine($"\n**{prop.Name}**:");
-                foreach (var cp in childObj.Properties())
-                {
-                    if (cp.Value.Type != JTokenType.Null)
-                        sb.AppendLine($"  - {cp.Name}: {cp.Value}");
-                }
-            }
-            else
-            {
-                sb.AppendLine($"- **{prop.Name}**: {val}");
-            }
-        }
-        return sb.ToString();
+        var entity = listTool.StartsWith("Get", StringComparison.Ordinal)
+            ? listTool[3..]
+            : listTool.Contains("Get", StringComparison.Ordinal) ? listTool[..listTool.IndexOf("Get", StringComparison.Ordinal)] : null;
+        if (string.IsNullOrEmpty(entity))
+            return null;
+        var candidate = $"Get{entity.TrimEnd('s')}Details";
+        return candidate != listTool && _tools.ContainsKey(candidate) ? candidate : null;
     }
 
     /// <summary>

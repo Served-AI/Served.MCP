@@ -39,9 +39,7 @@ public static class ToolGroupTools
         server.RegisterTool("activate_tool_group",
             "Activate a tool group to make its tools available for use. " +
             "Call list_tool_groups first to see available groups. " +
-            "Available groups: core, project-management, task-management, customer-management, " +
-            "time-tracking, agreements, devops, infrastructure, dashboards, datasource, boards, " +
-            "finance, sales, atlas-control, supervisor, serva-marketing, media, vault, tenant-management",
+            "Available groups: " + string.Join(", ", registry.ListGroups().Select(g => g.Name).OrderBy(n => n)),
             async (args) =>
             {
                 var name = args["name"]?.Value<string>();

@@ -1,4 +1,3 @@
-using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
 namespace Served.MCP.Tools;
@@ -18,11 +17,14 @@ public class McpToolGroup
 }
 
 /// <summary>
-/// Registry that manages tool groups and resolves which tools are active
-/// for a given MCP session. Reads/writes configuration from .served/mcp-groups.unified.
+/// Registry that manages tool groups and resolves which tools are active for this MCP process.
 ///
-/// When no config exists, falls back to exposing ALL tools (backwards compatible).
-/// When config exists, only tools in active groups are visible to the model.
+/// Group definitions come from the built-in defaults below, or from .served/mcp-groups.unified when a
+/// repo has one (read-only: it holds defaults and is never written). Every SDK-generated tool is added
+/// to the group derived from its SDK client (GeneratedToolRegistrations.ToolGroups), so a new SDK tool
+/// is never invisible. Activation is per process, in memory: each MCP process serves one session, and
+/// AgentStateManager restores a session's active groups — so one session's activate_tool_group never
+/// leaks into other sessions or into git.
 /// </summary>
 public class ToolGroupRegistry
 {
@@ -35,13 +37,73 @@ public class ToolGroupRegistry
     {
         "activate_tool_group",
         "deactivate_tool_group",
-        "list_tool_groups"
+        "list_tool_groups",
+        "served_mcp_info"
     };
 
-    public ToolGroupRegistry(string? configPath = null)
+    /// <param name="configPath">Defaults file; found by walking up from the working directory when null.</param>
+    /// <param name="generatedToolGroups">Tool → group for SDK-generated tools (default: GeneratedToolRegistrations.ToolGroups).</param>
+    /// <param name="generatedGroupDescriptions">Descriptions for groups that only generated tools create.</param>
+    public ToolGroupRegistry(
+        string? configPath = null,
+        IReadOnlyDictionary<string, string>? generatedToolGroups = null,
+        IReadOnlyDictionary<string, string>? generatedGroupDescriptions = null)
     {
         _configPath = configPath ?? FindConfigPath();
-        LoadOrCreateDefaults();
+        LoadDefaults();
+        MergeGeneratedTools(
+            generatedToolGroups ?? GeneratedToolRegistrations.ToolGroups,
+            generatedGroupDescriptions ?? GeneratedToolRegistrations.GroupDescriptions);
+    }
+
+    /// <summary>
+    /// Registered tools that no group contains — no session can ever see them.
+    /// </summary>
+    public List<string> UngroupedTools(IEnumerable<string> registeredTools)
+    {
+        var grouped = new HashSet<string>(_groups.Values.SelectMany(g => g.Tools), StringComparer.OrdinalIgnoreCase);
+        return registeredTools
+            .Where(t => !grouped.Contains(t) && !MetaToolNames.Contains(t))
+            .OrderBy(t => t, StringComparer.Ordinal)
+            .ToList();
+    }
+
+    /// <summary>
+    /// Tool names listed in a group that no registered tool has (renamed or removed tools).
+    /// </summary>
+    public List<string> UnknownTools(IEnumerable<string> registeredTools)
+    {
+        var registered = new HashSet<string>(registeredTools, StringComparer.OrdinalIgnoreCase);
+        return _groups.Values
+            .SelectMany(g => g.Tools)
+            .Where(t => !registered.Contains(t))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(t => t, StringComparer.Ordinal)
+            .ToList();
+    }
+
+    /// <summary>
+    /// Groups a tool belongs to.
+    /// </summary>
+    public List<string> GroupsOf(string tool) =>
+        _groups.Values.Where(g => g.Tools.Contains(tool, StringComparer.OrdinalIgnoreCase)).Select(g => g.Name).OrderBy(n => n).ToList();
+
+    private void MergeGeneratedTools(IReadOnlyDictionary<string, string> toolGroups, IReadOnlyDictionary<string, string> groupDescriptions)
+    {
+        foreach (var (tool, groupName) in toolGroups)
+        {
+            if (!_groups.TryGetValue(groupName, out var group))
+            {
+                group = new McpToolGroup
+                {
+                    Name = groupName,
+                    Description = groupDescriptions.TryGetValue(groupName, out var d) ? d : $"SDK tools ({groupName})"
+                };
+                _groups[groupName] = group;
+            }
+            if (!group.Tools.Contains(tool, StringComparer.OrdinalIgnoreCase))
+                group.Tools.Add(tool);
+        }
     }
 
     /// <summary>
@@ -79,7 +141,6 @@ public class ToolGroupRegistry
             return (true, group.Tools, null); // Already active, still return tools
 
         group.Active = true;
-        SaveConfig();
         Console.Error.WriteLine($"[MCP] Tool group '{name}' activated ({group.Tools.Count} tools)");
         return (true, group.Tools, null);
     }
@@ -99,7 +160,6 @@ public class ToolGroupRegistry
             return (true, new(), null); // Already inactive
 
         group.Active = false;
-        SaveConfig();
         Console.Error.WriteLine($"[MCP] Tool group '{name}' deactivated");
         return (true, group.Tools, null);
     }
@@ -130,8 +190,10 @@ public class ToolGroupRegistry
         return Path.Combine(Directory.GetCurrentDirectory(), ".served", "mcp-groups.unified");
     }
 
-    private void LoadOrCreateDefaults()
+    private void LoadDefaults()
     {
+        _initialized = true;
+
         if (File.Exists(_configPath))
         {
             try
@@ -149,24 +211,21 @@ public class ToolGroupRegistry
                             g.AlwaysActive = true;
                         _groups[prop.Name] = g;
                     }
-                    _initialized = true;
-                    // Migrate: inject missing default groups into existing config
+                    // Groups added to the built-in defaults since the file was written
                     MigrateDefaults();
-                    Console.Error.WriteLine($"[MCP] Loaded {_groups.Count} tool groups from {_configPath}");
+                    Console.Error.WriteLine($"[MCP] Loaded {_groups.Count} tool group defaults from {_configPath}");
                     return;
                 }
             }
             catch (Exception ex)
             {
-                Console.Error.WriteLine($"[MCP] Failed to load tool groups: {ex.Message}. Using defaults.");
+                Console.Error.WriteLine($"[MCP] Failed to load tool groups from {_configPath}: {ex.Message}. Using built-in defaults.");
+                _groups.Clear();
             }
         }
 
-        // Create defaults
         CreateDefaultGroups();
-        _initialized = true;
-        SaveConfig();
-        Console.Error.WriteLine($"[MCP] Created default tool groups ({_groups.Count} groups) at {_configPath}");
+        Console.Error.WriteLine($"[MCP] Using built-in tool group defaults ({_groups.Count} groups)");
     }
 
     private void CreateDefaultGroups()
@@ -461,7 +520,8 @@ public class ToolGroupRegistry
             }
         }
 
-        if (migrated) SaveConfig();
+        if (migrated)
+            Console.Error.WriteLine($"[MCP] Tool group defaults file lacks built-in groups/tools — merged in memory; update {_configPath} to silence this");
     }
 
     // Helper for migration — builds default groups into an external dictionary
@@ -489,43 +549,5 @@ public class ToolGroupRegistry
     private void Add(McpToolGroup group)
     {
         _groups[group.Name] = group;
-    }
-
-    private void SaveConfig()
-    {
-        try
-        {
-            var dir = Path.GetDirectoryName(_configPath);
-            if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir))
-                Directory.CreateDirectory(dir);
-
-            var config = new JObject
-            {
-                ["version"] = 1,
-                ["description"] = "MCP tool group configuration. Groups control which tools are visible to the AI model.",
-                ["groups"] = new JObject()
-            };
-
-            foreach (var group in _groups.Values.OrderBy(g => g.Name))
-            {
-                var g = new JObject
-                {
-                    ["description"] = group.Description,
-                    ["active"] = group.Active,
-                    ["tools"] = new JArray(group.Tools)
-                };
-                if (group.AlwaysActive)
-                    g["always_active"] = true;
-                if (!string.IsNullOrEmpty(group.Notes))
-                    g["notes"] = group.Notes;
-                ((JObject)config["groups"]!)[group.Name] = g;
-            }
-
-            File.WriteAllText(_configPath, config.ToString(Formatting.Indented));
-        }
-        catch (Exception ex)
-        {
-            Console.Error.WriteLine($"[MCP] Failed to save tool group config: {ex.Message}");
-        }
     }
 }

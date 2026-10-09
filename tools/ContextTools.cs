@@ -1,6 +1,7 @@
 using System.Text;
 using Newtonsoft.Json.Linq;
 using Served.SDK.Client;
+using Served.SDK.Models.Tasks;
 
 namespace Served.MCP.Tools;
 
@@ -180,7 +181,7 @@ public static class ContextTools
                 {
                     var due = t.DueDate.HasValue ? $", due: {t.DueDate:yyyy-MM-dd}{(t.DueDate < today ? " (overdue)" : "")}" : "";
                     var assignee = t.AssignedTo.HasValue ? $", assignee: \"{NameOf(t.AssignedTo)}\"" : "";
-                    var priority = t.Priority.HasValue ? $", priority: {(int)t.Priority.Value}" : "";
+                    var priority = t.Priority is { } p && p != TaskPriority.None ? $", priority: {p}" : "";
                     sb.AppendLine($"    @task[{t.Id}] {{ name: \"{t.Name}\", status: {t.Status}{priority}{due}{assignee} }}");
                 }
                 if (open.Count > 50) sb.AppendLine($"    ...and {open.Count - 50} more");
