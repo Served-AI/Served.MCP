@@ -2335,6 +2335,144 @@
     "sdkMethod": "AiAgents.UndoAutoTaskAsync"
   },
   {
+    "name": "AiSessionDecide",
+    "description": "Decide (ai sessions).",
+    "category": "AiSessions",
+    "group": "ai-sessions",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "conversationId": {
+          "type": "integer",
+          "description": "The conversation ID"
+        },
+        "approvalId": {
+          "type": "integer",
+          "description": "The approval ID"
+        },
+        "approve": {
+          "type": "boolean",
+          "description": "The approve"
+        },
+        "note": {
+          "type": "string",
+          "description": "The note"
+        }
+      },
+      "required": [
+        "conversationId",
+        "approvalId",
+        "approve"
+      ]
+    },
+    "isDangerous": false,
+    "sdkMethod": "AiSessions.DecideAsync"
+  },
+  {
+    "name": "AiSessionListMessages",
+    "description": "List messages (ai sessions).",
+    "category": "AiSessions",
+    "group": "ai-sessions",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "conversationId": {
+          "type": "integer",
+          "description": "The conversation ID"
+        },
+        "take": {
+          "type": "integer",
+          "description": "Maximum number of results to return"
+        },
+        "beforeId": {
+          "type": "integer",
+          "description": "The before ID"
+        }
+      },
+      "required": [
+        "conversationId"
+      ]
+    },
+    "isDangerous": false,
+    "sdkMethod": "AiSessions.ListMessagesAsync"
+  },
+  {
+    "name": "AiSessionSend",
+    "description": "Send (ai sessions).",
+    "category": "AiSessions",
+    "group": "ai-sessions",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "conversationId": {
+          "type": "integer",
+          "description": "The conversation ID"
+        },
+        "request": {
+          "type": "object",
+          "properties": {
+            "text": {
+              "type": "string"
+            },
+            "plan": {
+              "type": "boolean"
+            },
+            "model": {
+              "type": "string"
+            },
+            "permissionMode": {
+              "type": "string"
+            },
+            "attachments": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "fileName": {
+                    "type": "string"
+                  },
+                  "contentType": {
+                    "type": "string"
+                  },
+                  "base64Content": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          },
+          "description": "The request data"
+        }
+      },
+      "required": [
+        "conversationId",
+        "request"
+      ]
+    },
+    "isDangerous": false,
+    "sdkMethod": "AiSessions.SendAsync"
+  },
+  {
+    "name": "AiSessionStop",
+    "description": "Stop (ai sessions).",
+    "category": "AiSessions",
+    "group": "ai-sessions",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "conversationId": {
+          "type": "integer",
+          "description": "The conversation ID"
+        }
+      },
+      "required": [
+        "conversationId"
+      ]
+    },
+    "isDangerous": false,
+    "sdkMethod": "AiSessions.StopAsync"
+  },
+  {
     "name": "ApiKeyDeactivate",
     "description": "Deactivate (api key).",
     "category": "ApiKeys",
@@ -3532,6 +3670,46 @@
     },
     "isDangerous": false,
     "sdkMethod": "AiAgents.CreateAsync"
+  },
+  {
+    "name": "CreateAiSession",
+    "description": "Create a new ai sessions.",
+    "category": "AiSessions",
+    "group": "ai-sessions",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "request": {
+          "type": "object",
+          "properties": {
+            "title": {
+              "type": "string"
+            },
+            "permissionMode": {
+              "type": "string"
+            },
+            "model": {
+              "type": "string"
+            },
+            "message": {
+              "type": "string"
+            },
+            "taskId": {
+              "type": "integer"
+            },
+            "visibility": {
+              "type": "string"
+            }
+          },
+          "description": "The request data"
+        }
+      },
+      "required": [
+        "request"
+      ]
+    },
+    "isDangerous": false,
+    "sdkMethod": "AiSessions.CreateAsync"
   },
   {
     "name": "CreateApiKey",
@@ -5267,6 +5445,75 @@
     "sdkMethod": "TimeRegistrations.DeleteAsync"
   },
   {
+    "name": "DevOpCancelPipelineRun",
+    "description": "Cancel pipeline run (dev ops).",
+    "category": "DevOps",
+    "group": "devops",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "owner": {
+          "type": "string",
+          "description": "The owner"
+        },
+        "repo": {
+          "type": "string",
+          "description": "The repo"
+        },
+        "runId": {
+          "type": "integer",
+          "description": "The run ID"
+        }
+      },
+      "required": [
+        "owner",
+        "repo",
+        "runId"
+      ]
+    },
+    "isDangerous": false,
+    "sdkMethod": "DevOps.CancelPipelineRunAsync"
+  },
+  {
+    "name": "DevOpClosePullRequest",
+    "description": "Close a pull request without merging. DevOpReopenPullRequest opens it again.",
+    "category": "DevOps",
+    "group": "devops",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "source": {
+          "type": "string",
+          "enum": [
+            "forge",
+            "github"
+          ],
+          "description": "forge | github"
+        },
+        "owner": {
+          "type": "string",
+          "description": "The owner"
+        },
+        "repo": {
+          "type": "string",
+          "description": "The repo"
+        },
+        "number": {
+          "type": "integer",
+          "description": "The number"
+        }
+      },
+      "required": [
+        "source",
+        "owner",
+        "repo",
+        "number"
+      ]
+    },
+    "isDangerous": false,
+    "sdkMethod": "DevOps.ClosePullRequestAsync"
+  },
+  {
     "name": "DevOpCreateRepository",
     "description": "Create repository (dev ops).",
     "category": "DevOps",
@@ -5322,6 +5569,71 @@
     "sdkMethod": "DevOps.CreateRepositoryAsync"
   },
   {
+    "name": "DevOpDeleteMirror",
+    "description": "Delete mirror (dev ops).",
+    "category": "DevOps",
+    "group": "devops",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "owner": {
+          "type": "string",
+          "description": "The owner"
+        },
+        "repo": {
+          "type": "string",
+          "description": "The repo"
+        }
+      },
+      "required": [
+        "owner",
+        "repo"
+      ]
+    },
+    "isDangerous": true,
+    "sdkMethod": "DevOps.DeleteMirrorAsync"
+  },
+  {
+    "name": "DevOpDeleteRegistryReplication",
+    "description": "Delete registry replication (dev ops).",
+    "category": "DevOps",
+    "group": "devops",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "The name"
+        }
+      },
+      "required": [
+        "name"
+      ]
+    },
+    "isDangerous": true,
+    "sdkMethod": "DevOps.DeleteRegistryReplicationAsync"
+  },
+  {
+    "name": "DevOpDeleteRegistryUpstream",
+    "description": "Delete registry upstream (dev ops).",
+    "category": "DevOps",
+    "group": "devops",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "The name"
+        }
+      },
+      "required": [
+        "name"
+      ]
+    },
+    "isDangerous": true,
+    "sdkMethod": "DevOps.DeleteRegistryUpstreamAsync"
+  },
+  {
     "name": "DevOpDeleteRepository",
     "description": "Delete repository (dev ops).",
     "category": "DevOps",
@@ -5340,6 +5652,26 @@
     },
     "isDangerous": true,
     "sdkMethod": "DevOps.DeleteRepositoryAsync"
+  },
+  {
+    "name": "DevOpDeleteRunner",
+    "description": "Delete runner (dev ops).",
+    "category": "DevOps",
+    "group": "devops",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "runnerId": {
+          "type": "integer",
+          "description": "The runner ID"
+        }
+      },
+      "required": [
+        "runnerId"
+      ]
+    },
+    "isDangerous": true,
+    "sdkMethod": "DevOps.DeleteRunnerAsync"
   },
   {
     "name": "DevOpForgeGoSync",
@@ -5490,21 +5822,171 @@
     "sdkMethod": "DevOps.GetLatestPipelineRunAsync"
   },
   {
-    "name": "DevOpGetPipelineRuns",
-    "description": "Get CI/CD pipeline runs with status, duration, and trigger info.",
+    "name": "DevOpGetMirror",
+    "description": "Get mirror for the dev ops.",
     "category": "DevOps",
     "group": "devops",
     "inputSchema": {
       "type": "object",
       "properties": {
-        "pullRequestId": {
-          "type": "integer",
-          "description": "The pullRequest ID"
+        "owner": {
+          "type": "string",
+          "description": "The owner"
+        },
+        "repo": {
+          "type": "string",
+          "description": "The repo"
         }
       },
       "required": [
-        "pullRequestId"
+        "owner",
+        "repo"
       ]
+    },
+    "isDangerous": false,
+    "sdkMethod": "DevOps.GetMirrorAsync"
+  },
+  {
+    "name": "DevOpGetMirrors",
+    "description": "Get mirrors for the dev ops.",
+    "category": "DevOps",
+    "group": "devops",
+    "inputSchema": {
+      "type": "object",
+      "properties": {},
+      "required": []
+    },
+    "isDangerous": false,
+    "sdkMethod": "DevOps.GetMirrorsAsync"
+  },
+  {
+    "name": "DevOpGetPipelineRun",
+    "description": "A Forge workflow run with its jobs and their steps (status, conclusion, runner, timings).",
+    "category": "DevOps",
+    "group": "devops",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "owner": {
+          "type": "string",
+          "description": "The owner"
+        },
+        "repo": {
+          "type": "string",
+          "description": "The repo"
+        },
+        "runId": {
+          "type": "integer",
+          "description": "The run ID"
+        }
+      },
+      "required": [
+        "owner",
+        "repo",
+        "runId"
+      ]
+    },
+    "isDangerous": false,
+    "sdkMethod": "DevOps.GetPipelineRunAsync"
+  },
+  {
+    "name": "DevOpGetPipelineRunJobs",
+    "description": "Get pipeline run jobs for the dev ops.",
+    "category": "DevOps",
+    "group": "devops",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "owner": {
+          "type": "string",
+          "description": "The owner"
+        },
+        "repo": {
+          "type": "string",
+          "description": "The repo"
+        },
+        "runId": {
+          "type": "integer",
+          "description": "The run ID"
+        }
+      },
+      "required": [
+        "owner",
+        "repo",
+        "runId"
+      ]
+    },
+    "isDangerous": false,
+    "sdkMethod": "DevOps.GetPipelineRunJobsAsync"
+  },
+  {
+    "name": "DevOpGetPipelineRunLogs",
+    "description": "A Forge workflow run\u0027s stored log lines (every job and step, in order), the last \u0060tail\u0060 of them. DevOpGetPipelineStepLogs reads one step.",
+    "category": "DevOps",
+    "group": "devops",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "owner": {
+          "type": "string",
+          "description": "The owner"
+        },
+        "repo": {
+          "type": "string",
+          "description": "The repo"
+        },
+        "runId": {
+          "type": "integer",
+          "description": "The run ID"
+        },
+        "tail": {
+          "type": "integer",
+          "description": "The last N lines (default 200, 0 = all)"
+        }
+      },
+      "required": [
+        "owner",
+        "repo",
+        "runId"
+      ]
+    },
+    "isDangerous": false,
+    "sdkMethod": "DevOps.GetPipelineRunLogsAsync"
+  },
+  {
+    "name": "DevOpGetPipelineRuns",
+    "description": "Forge workflow runs with status, conclusion, branch, commit and timings \u2014 one repository\u0027s (owner \u002B repo) or the newest across all of them. DevOpGetPipelineRun has the jobs, DevOpGetPipelineRunLogs the log. Optional: owner, repo, branch, status, limit, page.",
+    "category": "DevOps",
+    "group": "devops",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "owner": {
+          "type": "string",
+          "description": "The owner"
+        },
+        "repo": {
+          "type": "string",
+          "description": "The repo"
+        },
+        "branch": {
+          "type": "string",
+          "description": "The branch"
+        },
+        "status": {
+          "type": "string",
+          "description": "queued | in_progress | waiting | completed"
+        },
+        "limit": {
+          "type": "integer",
+          "description": "Maximum number of results to return"
+        },
+        "page": {
+          "type": "integer",
+          "description": "The page"
+        }
+      },
+      "required": []
     },
     "isDangerous": false,
     "sdkMethod": "DevOps.GetPipelineRunsAsync"
@@ -5532,6 +6014,50 @@
     },
     "isDangerous": false,
     "sdkMethod": "DevOps.GetPipelineRunsByRepositoryAsync"
+  },
+  {
+    "name": "DevOpGetPipelineStepLogs",
+    "description": "Get pipeline step logs for the dev ops.",
+    "category": "DevOps",
+    "group": "devops",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "owner": {
+          "type": "string",
+          "description": "The owner"
+        },
+        "repo": {
+          "type": "string",
+          "description": "The repo"
+        },
+        "runId": {
+          "type": "integer",
+          "description": "The run ID"
+        },
+        "jobId": {
+          "type": "integer",
+          "description": "The job ID"
+        },
+        "stepId": {
+          "type": "integer",
+          "description": "The step ID"
+        },
+        "fromLine": {
+          "type": "integer",
+          "description": "The from line"
+        }
+      },
+      "required": [
+        "owner",
+        "repo",
+        "runId",
+        "jobId",
+        "stepId"
+      ]
+    },
+    "isDangerous": false,
+    "sdkMethod": "DevOps.GetPipelineStepLogsAsync"
   },
   {
     "name": "DevOpGetPodLogs",
@@ -5592,8 +6118,189 @@
     "sdkMethod": "DevOps.GetPodsAsync"
   },
   {
+    "name": "DevOpGetPullRequest",
+    "description": "A pull request with its commits, reviews, comments, checks and whether it can be merged.",
+    "category": "DevOps",
+    "group": "devops",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "source": {
+          "type": "string",
+          "enum": [
+            "forge",
+            "github"
+          ],
+          "description": "forge | github"
+        },
+        "owner": {
+          "type": "string",
+          "description": "The owner"
+        },
+        "repo": {
+          "type": "string",
+          "description": "The repo"
+        },
+        "number": {
+          "type": "integer",
+          "description": "The number"
+        },
+        "parts": {
+          "type": "string",
+          "description": "Comma-separated parts to read: commits,reviews,comments,checks,merge; none = the pull request alone; left out = all"
+        }
+      },
+      "required": [
+        "source",
+        "owner",
+        "repo",
+        "number"
+      ]
+    },
+    "isDangerous": false,
+    "sdkMethod": "DevOps.GetPullRequestAsync"
+  },
+  {
+    "name": "DevOpGetPullRequestInbox",
+    "description": "The caller\u0027s pull request inbox across the workspace\u0027s repositories (Forge and GitHub): scope review = waiting for their review, mine = opened by them, all = everyone\u0027s. Each row has source/owner/repo/number for DevOpGetPullRequest, DevOpUpdatePullRequest and DevOpClosePullRequest.",
+    "category": "DevOps",
+    "group": "devops",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "scope": {
+          "type": "string",
+          "enum": [
+            "review",
+            "mine",
+            "all"
+          ],
+          "description": "review (default) | mine | all"
+        },
+        "state": {
+          "type": "string",
+          "enum": [
+            "open",
+            "closed",
+            "merged",
+            "all"
+          ],
+          "description": "open (default) | closed | merged | all"
+        },
+        "repositoryId": {
+          "type": "integer",
+          "description": "The repository ID"
+        },
+        "limit": {
+          "type": "integer",
+          "description": "Maximum number of results to return"
+        },
+        "page": {
+          "type": "integer",
+          "description": "The page"
+        }
+      },
+      "required": []
+    },
+    "isDangerous": false,
+    "sdkMethod": "DevOps.GetPullRequestInboxAsync"
+  },
+  {
+    "name": "DevOpGetPullRequestLink",
+    "description": "Get pull request link for the dev ops.",
+    "category": "DevOps",
+    "group": "devops",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "source": {
+          "type": "string",
+          "enum": [
+            "forge",
+            "github"
+          ],
+          "description": "forge | github"
+        },
+        "owner": {
+          "type": "string",
+          "description": "The owner"
+        },
+        "repo": {
+          "type": "string",
+          "description": "The repo"
+        },
+        "number": {
+          "type": "integer",
+          "description": "The number"
+        }
+      },
+      "required": [
+        "source",
+        "owner",
+        "repo",
+        "number"
+      ]
+    },
+    "isDangerous": false,
+    "sdkMethod": "DevOps.GetPullRequestLinkAsync"
+  },
+  {
+    "name": "DevOpGetPullRequestOptions",
+    "description": "The labels and people (assignees, reviewers) a pull request in this repository can be given, with the keys DevOpUpdatePullRequest takes.",
+    "category": "DevOps",
+    "group": "devops",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "source": {
+          "type": "string",
+          "enum": [
+            "forge",
+            "github"
+          ],
+          "description": "forge | github"
+        },
+        "owner": {
+          "type": "string",
+          "description": "The owner"
+        },
+        "repo": {
+          "type": "string",
+          "description": "The repo"
+        }
+      },
+      "required": [
+        "source",
+        "owner",
+        "repo"
+      ]
+    },
+    "isDangerous": false,
+    "sdkMethod": "DevOps.GetPullRequestOptionsAsync"
+  },
+  {
+    "name": "DevOpGetPullRequestPipelineRuns",
+    "description": "Get pull request pipeline runs for the dev ops.",
+    "category": "DevOps",
+    "group": "devops",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "pullRequestId": {
+          "type": "integer",
+          "description": "The pullRequest ID"
+        }
+      },
+      "required": [
+        "pullRequestId"
+      ]
+    },
+    "isDangerous": false,
+    "sdkMethod": "DevOps.GetPullRequestPipelineRunsAsync"
+  },
+  {
     "name": "DevOpGetPullRequests",
-    "description": "Get pull requests across connected repositories.",
+    "description": "Pull requests across the workspace\u0027s repositories, from Forge and GitHub, newest activity first. Each row has source/owner/repo/number for DevOpGetPullRequest. Optional: state, repositoryId, limit, page.",
     "category": "DevOps",
     "group": "devops",
     "inputSchema": {
@@ -5601,11 +6308,19 @@
       "properties": {
         "state": {
           "type": "string",
-          "description": "The state"
+          "description": "open (default) | closed | merged | all"
         },
         "limit": {
           "type": "integer",
           "description": "Maximum number of results to return"
+        },
+        "repositoryId": {
+          "type": "integer",
+          "description": "The repository ID"
+        },
+        "page": {
+          "type": "integer",
+          "description": "The page"
         }
       },
       "required": []
@@ -5627,11 +6342,15 @@
         },
         "state": {
           "type": "string",
-          "description": "The state"
+          "description": "open (default) | closed | merged | all"
         },
         "limit": {
           "type": "integer",
           "description": "Maximum number of results to return"
+        },
+        "page": {
+          "type": "integer",
+          "description": "The page"
         }
       },
       "required": [
@@ -5682,6 +6401,32 @@
     "sdkMethod": "DevOps.GetPullRequestsByTaskAsync"
   },
   {
+    "name": "DevOpGetRegistryReplications",
+    "description": "Get registry replications for the dev ops.",
+    "category": "DevOps",
+    "group": "devops",
+    "inputSchema": {
+      "type": "object",
+      "properties": {},
+      "required": []
+    },
+    "isDangerous": false,
+    "sdkMethod": "DevOps.GetRegistryReplicationsAsync"
+  },
+  {
+    "name": "DevOpGetRegistryUpstreams",
+    "description": "Get registry upstreams for the dev ops.",
+    "category": "DevOps",
+    "group": "devops",
+    "inputSchema": {
+      "type": "object",
+      "properties": {},
+      "required": []
+    },
+    "isDangerous": false,
+    "sdkMethod": "DevOps.GetRegistryUpstreamsAsync"
+  },
+  {
     "name": "DevOpGetRepositories",
     "description": "List connected Git repositories with last commit, branch info, and pipeline status.",
     "category": "DevOps",
@@ -5720,16 +6465,109 @@
     "sdkMethod": "DevOps.GetRepositoryAsync"
   },
   {
-    "name": "DevOpLinkPullRequestToTask",
-    "description": "Link pull request to task (dev ops).",
+    "name": "DevOpGetRunner",
+    "description": "Get runner for the dev ops.",
     "category": "DevOps",
     "group": "devops",
     "inputSchema": {
       "type": "object",
       "properties": {
-        "pullRequestId": {
+        "runnerId": {
           "type": "integer",
-          "description": "The pullRequest ID"
+          "description": "The runner ID"
+        }
+      },
+      "required": [
+        "runnerId"
+      ]
+    },
+    "isDangerous": false,
+    "sdkMethod": "DevOps.GetRunnerAsync"
+  },
+  {
+    "name": "DevOpGetRunners",
+    "description": "The tenant\u0027s Forge runners: status (online | offline | busy), labels, OS, version and last heartbeat.",
+    "category": "DevOps",
+    "group": "devops",
+    "inputSchema": {
+      "type": "object",
+      "properties": {},
+      "required": []
+    },
+    "isDangerous": false,
+    "sdkMethod": "DevOps.GetRunnersAsync"
+  },
+  {
+    "name": "DevOpLinkPullRequestToSession",
+    "description": "Link pull request to session (dev ops).",
+    "category": "DevOps",
+    "group": "devops",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "source": {
+          "type": "string",
+          "enum": [
+            "forge",
+            "github"
+          ],
+          "description": "forge | github"
+        },
+        "owner": {
+          "type": "string",
+          "description": "The owner"
+        },
+        "repo": {
+          "type": "string",
+          "description": "The repo"
+        },
+        "number": {
+          "type": "integer",
+          "description": "The number"
+        },
+        "sessionId": {
+          "type": "integer",
+          "description": "The session ID"
+        }
+      },
+      "required": [
+        "source",
+        "owner",
+        "repo",
+        "number",
+        "sessionId"
+      ]
+    },
+    "isDangerous": false,
+    "sdkMethod": "DevOps.LinkPullRequestToSessionAsync"
+  },
+  {
+    "name": "DevOpLinkPullRequestToTask",
+    "description": "Link a pull request (source/owner/repo/number, e.g. from DevOpGetPullRequestInbox) to a Served task.",
+    "category": "DevOps",
+    "group": "devops",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "source": {
+          "type": "string",
+          "enum": [
+            "forge",
+            "github"
+          ],
+          "description": "forge | github"
+        },
+        "owner": {
+          "type": "string",
+          "description": "The owner"
+        },
+        "repo": {
+          "type": "string",
+          "description": "The repo"
+        },
+        "number": {
+          "type": "integer",
+          "description": "The number"
         },
         "taskId": {
           "type": "integer",
@@ -5737,12 +6575,88 @@
         }
       },
       "required": [
-        "pullRequestId",
+        "source",
+        "owner",
+        "repo",
+        "number",
         "taskId"
       ]
     },
     "isDangerous": false,
     "sdkMethod": "DevOps.LinkPullRequestToTaskAsync"
+  },
+  {
+    "name": "DevOpReopenPullRequest",
+    "description": "Reopen a closed pull request.",
+    "category": "DevOps",
+    "group": "devops",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "source": {
+          "type": "string",
+          "enum": [
+            "forge",
+            "github"
+          ],
+          "description": "forge | github"
+        },
+        "owner": {
+          "type": "string",
+          "description": "The owner"
+        },
+        "repo": {
+          "type": "string",
+          "description": "The repo"
+        },
+        "number": {
+          "type": "integer",
+          "description": "The number"
+        }
+      },
+      "required": [
+        "source",
+        "owner",
+        "repo",
+        "number"
+      ]
+    },
+    "isDangerous": false,
+    "sdkMethod": "DevOps.ReopenPullRequestAsync"
+  },
+  {
+    "name": "DevOpRerunPipelineRun",
+    "description": "Rerun pipeline run (dev ops).",
+    "category": "DevOps",
+    "group": "devops",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "owner": {
+          "type": "string",
+          "description": "The owner"
+        },
+        "repo": {
+          "type": "string",
+          "description": "The repo"
+        },
+        "runId": {
+          "type": "integer",
+          "description": "The run ID"
+        },
+        "failedJobsOnly": {
+          "type": "boolean",
+          "description": "The failed jobs only"
+        }
+      },
+      "required": [
+        "owner",
+        "repo",
+        "runId"
+      ]
+    },
+    "isDangerous": false,
+    "sdkMethod": "DevOps.RerunPipelineRunAsync"
   },
   {
     "name": "DevOpRestartDeployment",
@@ -5775,6 +6689,61 @@
     "sdkMethod": "DevOps.RestartDeploymentAsync"
   },
   {
+    "name": "DevOpRunRegistryReplication",
+    "description": "Run registry replication (dev ops).",
+    "category": "DevOps",
+    "group": "devops",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "The name"
+        },
+        "image": {
+          "type": "string",
+          "description": "The image"
+        },
+        "tag": {
+          "type": "string",
+          "description": "The tag"
+        }
+      },
+      "required": [
+        "name",
+        "image",
+        "tag"
+      ]
+    },
+    "isDangerous": false,
+    "sdkMethod": "DevOps.RunRegistryReplicationAsync"
+  },
+  {
+    "name": "DevOpSyncMirror",
+    "description": "Sync mirror (dev ops).",
+    "category": "DevOps",
+    "group": "devops",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "owner": {
+          "type": "string",
+          "description": "The owner"
+        },
+        "repo": {
+          "type": "string",
+          "description": "The repo"
+        }
+      },
+      "required": [
+        "owner",
+        "repo"
+      ]
+    },
+    "isDangerous": false,
+    "sdkMethod": "DevOps.SyncMirrorAsync"
+  },
+  {
     "name": "DevOpUnlinkPullRequestFromTask",
     "description": "Unlink pull request from task (dev ops).",
     "category": "DevOps",
@@ -5782,17 +6751,109 @@
     "inputSchema": {
       "type": "object",
       "properties": {
-        "pullRequestId": {
+        "source": {
+          "type": "string",
+          "enum": [
+            "forge",
+            "github"
+          ],
+          "description": "forge | github"
+        },
+        "owner": {
+          "type": "string",
+          "description": "The owner"
+        },
+        "repo": {
+          "type": "string",
+          "description": "The repo"
+        },
+        "number": {
           "type": "integer",
-          "description": "The pullRequest ID"
+          "description": "The number"
         }
       },
       "required": [
-        "pullRequestId"
+        "source",
+        "owner",
+        "repo",
+        "number"
       ]
     },
     "isDangerous": false,
     "sdkMethod": "DevOps.UnlinkPullRequestFromTaskAsync"
+  },
+  {
+    "name": "DevOpUpdatePullRequest",
+    "description": "Change a pull request\u0027s title, body, draft state, labels, assignees or requested reviewers. Only the fields given change; lists replace the current set. Labels by name, people by their key from DevOpGetPullRequestOptions.",
+    "category": "DevOps",
+    "group": "devops",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "source": {
+          "type": "string",
+          "enum": [
+            "forge",
+            "github"
+          ],
+          "description": "forge | github"
+        },
+        "owner": {
+          "type": "string",
+          "description": "The owner"
+        },
+        "repo": {
+          "type": "string",
+          "description": "The repo"
+        },
+        "number": {
+          "type": "integer",
+          "description": "The number"
+        },
+        "request": {
+          "type": "object",
+          "properties": {
+            "title": {
+              "type": "string"
+            },
+            "body": {
+              "type": "string"
+            },
+            "isDraft": {
+              "type": "boolean"
+            },
+            "labels": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "assignees": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "reviewers": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "description": "The request data"
+        }
+      },
+      "required": [
+        "source",
+        "owner",
+        "repo",
+        "number",
+        "request"
+      ]
+    },
+    "isDangerous": false,
+    "sdkMethod": "DevOps.UpdatePullRequestAsync"
   },
   {
     "name": "DevOpUpdateRepository",
@@ -6199,6 +7260,26 @@
     },
     "isDangerous": false,
     "sdkMethod": "AiAgents.ListAsync"
+  },
+  {
+    "name": "GetAiSessionDetails",
+    "description": "Get detailed information about a specific ai sessions.",
+    "category": "AiSessions",
+    "group": "ai-sessions",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "conversationId": {
+          "type": "integer",
+          "description": "The conversation ID"
+        }
+      },
+      "required": [
+        "conversationId"
+      ]
+    },
+    "isDangerous": false,
+    "sdkMethod": "AiSessions.GetAsync"
   },
   {
     "name": "GetApiKeys",
