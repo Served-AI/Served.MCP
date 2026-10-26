@@ -15,11 +15,25 @@ public static class AtlasControlTools
 
     private static HttpClient GetAtlasHttp()
     {
-        return _atlasHttp ??= new HttpClient
+        return _atlasHttp ??= new HttpClient(new AutomationTokenHandler { InnerHandler = new HttpClientHandler() })
         {
             BaseAddress = new Uri("http://localhost:6943"),
             Timeout = TimeSpan.FromSeconds(30)
         };
+    }
+
+    /// <summary>
+    /// Studio Pro, which serves this API on 6943, refuses every request without the token it writes at
+    /// launch to ~/.served/studio-pro/automation-token. Read per request: a restarted Studio Pro has a new one.
+    /// </summary>
+    private sealed class AutomationTokenHandler : DelegatingHandler
+    {
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            var path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".served", "studio-pro", "automation-token");
+            if (File.Exists(path)) request.Headers.TryAddWithoutValidation("X-Atlas-Token", File.ReadAllText(path).Trim());
+            return base.SendAsync(request, cancellationToken);
+        }
     }
 
     /// <summary>
