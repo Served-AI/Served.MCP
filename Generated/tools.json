@@ -1171,6 +1171,38 @@
     "sdkMethod": "AiAgents.CommitDeviceSessionChangesAsync"
   },
   {
+    "name": "AiAgentCommitSessionChanges",
+    "description": "Commit session changes (ai agents).",
+    "category": "AiAgents",
+    "group": "ai-agents",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "conversationId": {
+          "type": "integer",
+          "description": "The conversation ID"
+        },
+        "message": {
+          "type": "string",
+          "description": "The message"
+        },
+        "paths": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "The paths"
+        }
+      },
+      "required": [
+        "conversationId",
+        "message"
+      ]
+    },
+    "isDangerous": false,
+    "sdkMethod": "AiAgents.CommitSessionChangesAsync"
+  },
+  {
     "name": "AiAgentContinueDeviceSession",
     "description": "Continue device session (ai agents).",
     "category": "AiAgents",
@@ -1865,6 +1897,46 @@
     },
     "isDangerous": false,
     "sdkMethod": "AiAgents.PauseAsync"
+  },
+  {
+    "name": "AiAgentPushDeviceSessionChanges",
+    "description": "Push device session changes (ai agents).",
+    "category": "AiAgents",
+    "group": "ai-agents",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "integer",
+          "description": "The unique identifier"
+        }
+      },
+      "required": [
+        "id"
+      ]
+    },
+    "isDangerous": false,
+    "sdkMethod": "AiAgents.PushDeviceSessionChangesAsync"
+  },
+  {
+    "name": "AiAgentPushSessionChanges",
+    "description": "Push session changes (ai agents).",
+    "category": "AiAgents",
+    "group": "ai-agents",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "conversationId": {
+          "type": "integer",
+          "description": "The conversation ID"
+        }
+      },
+      "required": [
+        "conversationId"
+      ]
+    },
+    "isDangerous": false,
+    "sdkMethod": "AiAgents.PushSessionChangesAsync"
   },
   {
     "name": "AiAgentReject",
@@ -5514,6 +5586,65 @@
     "sdkMethod": "DevOps.ClosePullRequestAsync"
   },
   {
+    "name": "DevOpCreatePullRequest",
+    "description": "Open a pull request from a pushed branch on Forge or GitHub. targetBranch left out = the repository\u0027s default branch; title/body left out = from the branch\u0027s commits. If the branch already has an open pull request, that one is returned (created=false) \u2014 never a duplicate.",
+    "category": "DevOps",
+    "group": "devops",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "source": {
+          "type": "string",
+          "enum": [
+            "forge",
+            "github"
+          ],
+          "description": "forge | github"
+        },
+        "owner": {
+          "type": "string",
+          "description": "The owner"
+        },
+        "repo": {
+          "type": "string",
+          "description": "The repo"
+        },
+        "request": {
+          "type": "object",
+          "properties": {
+            "sourceBranch": {
+              "type": "string"
+            },
+            "targetBranch": {
+              "type": "string"
+            },
+            "title": {
+              "type": "string"
+            },
+            "body": {
+              "type": "string"
+            },
+            "isDraft": {
+              "type": "boolean"
+            },
+            "taskId": {
+              "type": "integer"
+            }
+          },
+          "description": "The request data"
+        }
+      },
+      "required": [
+        "source",
+        "owner",
+        "repo",
+        "request"
+      ]
+    },
+    "isDangerous": false,
+    "sdkMethod": "DevOps.CreatePullRequestAsync"
+  },
+  {
     "name": "DevOpCreateRepository",
     "description": "Create repository (dev ops).",
     "category": "DevOps",
@@ -6159,6 +6290,31 @@
     },
     "isDangerous": false,
     "sdkMethod": "DevOps.GetPullRequestAsync"
+  },
+  {
+    "name": "DevOpGetPullRequestForBranch",
+    "description": "Get pull request for a specific branch.",
+    "category": "DevOps",
+    "group": "devops",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "remoteUrl": {
+          "type": "string",
+          "description": "The remote url"
+        },
+        "branch": {
+          "type": "string",
+          "description": "The branch"
+        }
+      },
+      "required": [
+        "remoteUrl",
+        "branch"
+      ]
+    },
+    "isDangerous": false,
+    "sdkMethod": "DevOps.GetPullRequestForBranchAsync"
   },
   {
     "name": "DevOpGetPullRequestInbox",
