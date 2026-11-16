@@ -23,8 +23,8 @@
 # the packed tool is installed and must answer an MCP initialize + tools/list over stdio
 # (.forge/scripts/mcp-build.sh).
 #
-# This is the only pipeline that runs for this repo: .github/workflows/build.yml targets
-# GitHub-hosted runners, which are not enabled for the organisation.
+# This is the only pipeline for this repo — GitHub-hosted runners are not enabled for the
+# organisation, so there is no GitHub workflow.
 #
 # NO ${{ }} expressions — Forge runners don't process them.
 

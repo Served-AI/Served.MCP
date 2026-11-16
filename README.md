@@ -4,8 +4,6 @@
 [![.NET](https://img.shields.io/badge/.NET-10.0-512BD4)](https://dotnet.microsoft.com/)
 [![MCP](https://img.shields.io/badge/MCP-Compatible-blue)](https://modelcontextprotocol.io)
 
-**Version:** 2026.1.3
-
 MCP (Model Context Protocol) Server for AI assistants to interact with the Served platform via [UnifiedHQ](https://unifiedhq.ai). Enables Claude, GPT, and other AI models to access workspaces, projects, tasks, customers, and more.
 
 ## Links
@@ -45,8 +43,7 @@ Add to your Claude Desktop config (`~/Library/Application Support/Claude/claude_
     "served": {
       "command": "served-mcp",
       "env": {
-        "SERVED_API_URL": "https://apis.unifiedhq.ai",
-        "SERVED_TOKEN": "your-api-token",
+        "SERVED_API_KEY": "your-api-key",
         "SERVED_TENANT": "your-workspace-slug"
       }
     }
@@ -98,13 +95,7 @@ dotnet build -c Release
 ./bin/Release/net10.0/Served.MCP
 ```
 
-### Option 3: Docker
-
-```bash
-docker run -e SERVED_TOKEN=xxx -e SERVED_TENANT=yyy ghcr.io/unifiedhq/served-mcp:latest
-```
-
-### Option 4: From Source (ServedApp)
+### Option 3: From Source (ServedApp)
 
 If you have the full ServedApp repository:
 
@@ -121,17 +112,23 @@ dotnet run
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `SERVED_API_URL` | API base URL | `https://apis.unifiedhq.ai` |
-| `SERVED_TOKEN` | Your API token | - |
+| `SERVED_API_URL` | API base URL | `https://app.served.dk` |
+| `SERVED_API_KEY` | API key (long-lived; wins over the token) | - |
+| `SERVED_API_TOKEN` | JWT token | - |
+| `SERVED_EMAIL` / `SERVED_PASSWORD` | Auto-login when there is no key and no valid token | - |
 | `SERVED_TENANT` | Workspace slug | - |
-| `SERVED_MCP_TRACING` | Enable tracing | `false` |
-| `FORGE_API_KEY` | Forge platform API key | - |
+| `SERVED_TRACING_ENABLED` | SDK tracing | `true` |
+| `SERVED_ENVIRONMENT` | Environment name on traces | `development` |
 
-### Enable Tracing
+Without `SERVED_API_KEY` and `SERVED_API_TOKEN` the server reads `~/.served/mcp/credentials.json`
+(`{ "apiKey": "...", "token": "..." }`).
+
+### Tracing
+
+Tracing is on by default; turn it off with:
 
 ```bash
-export SERVED_MCP_TRACING=true
-export FORGE_API_KEY="your-forge-api-key"
+export SERVED_TRACING_ENABLED=false
 ```
 
 View your traces at [forge.unifiedhq.ai/analytics](https://forge.unifiedhq.ai/analytics)
@@ -247,7 +244,7 @@ Every tool call captures:
 
 | Environment | URL |
 |-------------|-----|
-| **Production** | `https://apis.unifiedhq.ai` |
+| **Production** | `https://app.served.dk` |
 | **MCP Server** | `https://app.served.dk/mcp` |
 | **Local Dev** | `http://localhost:5010` |
 
