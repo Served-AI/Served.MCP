@@ -1,0 +1,143 @@
+# Forge Pipeline: Served.MCP → Forge NuGet feed (as the .NET tool `served-mcp`)
+#
+# Every push to main builds Served.MCP, packs it as a .NET tool and pushes it to the Forge NuGet
+# feed (http://10.10.10.20:30695/nuget/served, public as https://git.unifiedhq.ai/nuget/served).
+# The run, its steps and their live logs show on app.served.dk → DevOps → Pipelines
+# (repo served/Served-MCP).
+#
+#   dotnet tool install -g Served.MCP --add-source https://git.unifiedhq.ai/nuget/served/v3/index.json
+#
+# Version: CalVer <year>.<month>.<commits on main>, month from the commit date (UTC).
+# The same commit always gets the same version; a re-run of a published commit skips the push.
+#
+# Served.SDK: the build uses the version ServedApp pins (<ServedSdkVersion> in
+# Directory.Build.props on served/app master), restored from the same Forge feed — the csproj's
+# own fallback is only for a checkout with no pin at all.
+#
+# The Forge runner image has no .NET: restore/build/pack and the push run in a pod of the
+# official .NET SDK image on the runner's node (.forge/scripts/dotnet-pod.sh), sharing the
+# build context through the runner cache (hostPath /var/cache/forge-runner).
+#
+# Tests: Served.MCP has no test project of its own — its tests are part of ServedApp's
+# Served.Tests (Served/Tests/Unit/Mcp/ServedMcp) and run there. The gate here is the package:
+# the packed tool is installed and must answer an MCP initialize + tools/list over stdio
+# (.forge/scripts/mcp-build.sh).
+#
+# This is the only pipeline that runs for this repo: .github/workflows/build.yml targets
+# GitHub-hosted runners, which are not enabled for the organisation.
+#
+# NO ${{ }} expressions — Forge runners don't process them.
+
+name: MCP Publish
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  publish:
+    name: Build, pack & publish Served.MCP
+    runs-on: [self-hosted, linux, has:kubernetes]
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout
+
+      - name: Version
+        run: |
+          set -eu
+          if [ "$(git rev-parse --is-shallow-repository)" = "true" ]; then
+            git fetch -q --unshallow origin
+          fi
+          COUNT=$(git rev-list --count HEAD)
+          YEAR=$(TZ=UTC git log -1 --format=%cd --date=format-local:%Y HEAD)
+          MONTH=$(TZ=UTC git log -1 --format=%cd --date=format-local:%m HEAD | sed 's/^0//')
+          VERSION="$YEAR.$MONTH.$COUNT"
+
+          # Build contexts of runs that died before their last step are cleared after 2 h.
+          mkdir -p /cache/mcp-publish/.nuget
+          find /cache/mcp-publish -mindepth 1 -maxdepth 1 -name '[0-9]*' -mmin +120 -exec rm -rf {} + 2>/dev/null || true
+          CTX="/cache/mcp-publish/$FORGE_RUN_ID"
+          rm -rf "$CTX" && mkdir -p "$CTX"
+          echo "$VERSION" > "$CTX/VERSION"
+          git rev-parse HEAD > "$CTX/COMMIT"
+
+          FEED="http://10.10.10.20:30695/nuget/served"
+          CODE=$(curl -s -o /dev/null -m 20 -w '%{http_code}' "$FEED/flatcontainer/served.mcp/$VERSION/served.mcp.$VERSION.nupkg" || echo 000)
+          echo "Served.MCP $VERSION (commit $(git rev-parse --short HEAD), branch $FORGE_BRANCH)"
+          if [ "$CODE" = "200" ]; then
+            echo "already" > "$CTX/PUBLISHED"
+            echo "→ $VERSION is already on the feed (this commit was published before) — build and handshake only"
+          fi
+
+      - name: Stage sources
+        run: |
+          set -eu
+          CTX="/cache/mcp-publish/$FORGE_RUN_ID"
+          cp -a . "$CTX/Served.MCP"
+          rm -rf "$CTX/Served.MCP/.git"
+          cp .forge/scripts/mcp-build.sh .forge/scripts/mcp-push.sh "$CTX/"
+
+          # The Served.SDK version comes from ServedApp's pin — served/app master, read with the
+          # runner's own clone credential (read:repo) as a header, so it is in no URL or config.
+          APP="$CTX/.app"
+          export GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=http.extraHeader
+          GIT_CONFIG_VALUE_0="Authorization: Basic $(printf 'runner:%s' "${FORGE_RUNNER_SECRET:?}" | base64 | tr -d '\n')"
+          export GIT_CONFIG_VALUE_0
+          git clone -q --depth 1 --filter=blob:none --no-checkout --branch master \
+            "${FORGE_URL:-http://10.10.10.20:30695}/served/app.git" "$APP"
+          SDK_VERSION=$(git -C "$APP" show HEAD:Directory.Build.props \
+            | sed -n 's:.*<ServedSdkVersion>\([^<]*\)</ServedSdkVersion>.*:\1:p' | head -1)
+          echo "Served.SDK $SDK_VERSION — the pin in served/app@$(git -C "$APP" rev-parse --short HEAD)"
+          rm -rf "$APP"
+          if [ -z "$SDK_VERSION" ]; then
+            echo "✗ No <ServedSdkVersion> in served/app's Directory.Build.props"
+            exit 1
+          fi
+          echo "$SDK_VERSION" > "$CTX/SDK_VERSION"
+          du -sh "$CTX/Served.MCP"
+
+      - name: Restore, build, pack & handshake
+        run: |
+          set -eu
+          CTX="/cache/mcp-publish/$FORGE_RUN_ID"
+          VERSION=$(cat "$CTX/VERSION") \
+          CTX_NODE="/var/cache/forge-runner/mcp-publish/$FORGE_RUN_ID" \
+            sh .forge/scripts/dotnet-pod.sh build mcp-build.sh
+
+      - name: Publish to Forge NuGet
+        run: |
+          set -eu
+          CTX="/cache/mcp-publish/$FORGE_RUN_ID"
+          VERSION=$(cat "$CTX/VERSION")
+          if [ "$FORGE_BRANCH" != "main" ]; then
+            echo "Branch $FORGE_BRANCH — only main publishes. Built $VERSION."
+            exit 0
+          fi
+          if [ -f "$CTX/PUBLISHED" ]; then
+            echo "Served.MCP $VERSION is already on the feed — nothing to push."
+            exit 0
+          fi
+          VERSION="$VERSION" \
+          CTX_NODE="/var/cache/forge-runner/mcp-publish/$FORGE_RUN_ID" \
+            sh .forge/scripts/dotnet-pod.sh push mcp-push.sh --feed-credential
+
+      - name: Verify on the feed
+        run: |
+          set -eu
+          CTX="/cache/mcp-publish/$FORGE_RUN_ID"
+          VERSION=$(cat "$CTX/VERSION")
+          rm -rf "$CTX"
+          if [ "$FORGE_BRANCH" != "main" ]; then
+            exit 0
+          fi
+          FEED="http://10.10.10.20:30695/nuget/served"
+          if ! curl -sf -m 20 "$FEED/flatcontainer/served.mcp/index.json" | grep -q "\"$VERSION\""; then
+            echo "✗ Served.MCP $VERSION is not listed on $FEED"
+            exit 1
+          fi
+          SIZE=$(curl -sf -m 60 -o /tmp/mcp.nupkg -w '%{size_download}' "$FEED/flatcontainer/served.mcp/$VERSION/served.mcp.$VERSION.nupkg")
+          rm -f /tmp/mcp.nupkg
+          echo "✓ Served.MCP $VERSION on $FEED ($SIZE bytes)"
+          echo "  dotnet tool install -g Served.MCP --version $VERSION --add-source https://git.unifiedhq.ai/nuget/served/v3/index.json"

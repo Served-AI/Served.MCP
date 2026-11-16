@@ -16,6 +16,10 @@
     <RepositoryUrl>https://github.com/Served-AI/Served.MCP</RepositoryUrl>
     <Product>Served.MCP</Product>
     <PackageTags>mcp;ai;served;claude;llm;unifiedhq;forge;openai;anthropic</PackageTags>
+    <!-- Packed as a .NET tool: dotnet tool install -g Served.MCP → `served-mcp` (.forge/workflows/publish.yaml) -->
+    <PackageId>Served.MCP</PackageId>
+    <PackAsTool>true</PackAsTool>
+    <ToolCommandName>served-mcp</ToolCommandName>
   </PropertyGroup>
 
   <ItemGroup>
@@ -29,16 +33,19 @@
 
   <!-- Build stamp: the Served.MCP and Served.SDK commits this binary is built from, read back by
        served_mcp_info, serverInfo.version and `served mcp status` (which compares it with HEAD).
-       Outside a git checkout (Docker) the commits are "unknown". -->
+       Outside a git checkout (Docker) the commits are "unknown"; the Forge pipeline builds without
+       .git and passes -p:ServedMcpCommit=<sha>. -->
   <Target Name="ServedMcpBuildStamp" BeforeTargets="GetAssemblyAttributes">
     <PropertyGroup>
       <_StampSdkDir>$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)/../Served.SDK'))</_StampSdkDir>
+      <_StampMcpCommit>$(ServedMcpCommit)</_StampMcpCommit>
+      <_StampMcpExit Condition="'$(ServedMcpCommit)' != ''">0</_StampMcpExit>
     </PropertyGroup>
-    <Exec Command="git -C &quot;$(MSBuildProjectDirectory)&quot; rev-parse HEAD" ConsoleToMSBuild="true" IgnoreExitCode="true" EchoOff="true" StandardOutputImportance="low" StandardErrorImportance="low">
+    <Exec Command="git -C &quot;$(MSBuildProjectDirectory)&quot; rev-parse HEAD" Condition="'$(ServedMcpCommit)' == ''" ConsoleToMSBuild="true" IgnoreExitCode="true" EchoOff="true" StandardOutputImportance="low" StandardErrorImportance="low">
       <Output TaskParameter="ConsoleOutput" PropertyName="_StampMcpCommit" />
       <Output TaskParameter="ExitCode" PropertyName="_StampMcpExit" />
     </Exec>
-    <Exec Command="git -C &quot;$(MSBuildProjectDirectory)&quot; status --porcelain --untracked-files=no" Condition="'$(_StampMcpExit)' == '0'" ConsoleToMSBuild="true" IgnoreExitCode="true" EchoOff="true" StandardOutputImportance="low" StandardErrorImportance="low">
+    <Exec Command="git -C &quot;$(MSBuildProjectDirectory)&quot; status --porcelain --untracked-files=no" Condition="'$(_StampMcpExit)' == '0' AND '$(ServedMcpCommit)' == ''" ConsoleToMSBuild="true" IgnoreExitCode="true" EchoOff="true" StandardOutputImportance="low" StandardErrorImportance="low">
       <Output TaskParameter="ConsoleOutput" PropertyName="_StampMcpStatus" />
     </Exec>
     <Exec Command="git -C &quot;$(_StampSdkDir)&quot; rev-parse HEAD" Condition="Exists('$(_StampSdkDir)')" ConsoleToMSBuild="true" IgnoreExitCode="true" EchoOff="true" StandardOutputImportance="low" StandardErrorImportance="low">

@@ -31,7 +31,11 @@ MCP (Model Context Protocol) Server for AI assistants to interact with the Serve
 
 ## Quick Start
 
-### 1. Configure Claude Desktop
+### 1. Install and configure Claude Desktop
+
+```bash
+dotnet tool install -g Served.MCP --add-source https://git.unifiedhq.ai/nuget/served/v3/index.json
+```
 
 Add to your Claude Desktop config (`~/Library/Application Support/Claude/claude_desktop_config.json`):
 
@@ -39,8 +43,7 @@ Add to your Claude Desktop config (`~/Library/Application Support/Claude/claude_
 {
   "mcpServers": {
     "served": {
-      "command": "dotnet",
-      "args": ["run", "--project", "/path/to/Served.MCP"],
+      "command": "served-mcp",
       "env": {
         "SERVED_API_URL": "https://apis.unifiedhq.ai",
         "SERVED_TOKEN": "your-api-token",
@@ -69,7 +72,18 @@ In Claude, you can now:
 
 ## Installation Options
 
-### Option 1: Clone & Run
+### Option 1: .NET tool (recommended)
+
+Needs the .NET 10 runtime. Every push to `main` publishes a new version to the Forge NuGet feed
+(`.forge/workflows/publish.yaml`).
+
+```bash
+dotnet tool install -g Served.MCP --add-source https://git.unifiedhq.ai/nuget/served/v3/index.json
+dotnet tool update  -g Served.MCP --add-source https://git.unifiedhq.ai/nuget/served/v3/index.json
+served-mcp            # stdio MCP server
+```
+
+### Option 2: Clone & Run
 
 ```bash
 # Clone the repo
@@ -84,13 +98,13 @@ dotnet build -c Release
 ./bin/Release/net10.0/Served.MCP
 ```
 
-### Option 2: Docker
+### Option 3: Docker
 
 ```bash
 docker run -e SERVED_TOKEN=xxx -e SERVED_TENANT=yyy ghcr.io/unifiedhq/served-mcp:latest
 ```
 
-### Option 3: From Source (ServedApp)
+### Option 4: From Source (ServedApp)
 
 If you have the full ServedApp repository:
 
